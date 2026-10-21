@@ -2,7 +2,7 @@
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#060a24;--fg:#e8f4ff}}
 :root[data-theme="dark"]{--bg:#060a24;--fg:#e8f4ff}
 html{scroll-padding-top:env(safe-area-inset-top,0px)}
-html,body{height:100%;margin:0;background:var(--bg);color:var(--fg);overflow:hidden}
+html,body{height:100%;margin:0;background:var(--bg);color:var(--fg);overflow:hidden;-webkit-tap-highlight-color:transparent}
 body{display:flex;align-items:center;justify-content:center;user-select:none;-webkit-user-select:none}
 /* Extend the current scene behind the game on tall and wide screens. */
 body::before{content:"";position:fixed;inset:0;background:linear-gradient(rgba(4,8,36,.25),rgba(4,8,36,.25)),url('assets/title_bg.jpg') center/cover no-repeat;pointer-events:none}
