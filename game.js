@@ -17,7 +17,25 @@ const IM={};let best=0;
 try{best=+sessionStorage.getItem('jp_best')||0}catch(e){}
 let state='title',t=0,bgx=0,pen,obs,score,boostT,deadT,overT,ac;
 function load(){return Promise.all(['idle','boost','cave','title','over'].map(k=>new Promise(r=>{const i=new Image();i.onload=()=>{IM[k]=i;r()};i.src=AS[k]})))}
-function beep(f,d,type='square',v=.05){try{ac=ac||new (window.AudioContext||window.webkitAudioContext)();const o=ac.createOscillator(),g=ac.createGain();o.type=type;o.frequency.value=f;g.gain.value=v;g.gain.exponentialRampToValueAtTime(.001,ac.currentTime+d);o.connect(g);g.connect(ac.destination);o.start();o.stop(ac.currentTime+d)}catch(e){}}
+// Mobile browsers can suspend audio until a completed tap unlocks it.
+function unlockAudio(){
+ try{
+  ac=ac||new (window.AudioContext||window.webkitAudioContext)();
+  if(ac.state!=='running')return ac.resume().catch(()=>{});
+ }catch(e){}
+}
+function beep(f,d,type='square',v=.05){
+ const ready=unlockAudio();
+ const play=()=>{try{
+  if(!ac||ac.state!=='running')return;
+  const o=ac.createOscillator(),g=ac.createGain(),now=ac.currentTime;
+  o.type=type;o.frequency.value=f;g.gain.setValueAtTime(v,now);
+  g.gain.exponentialRampToValueAtTime(.001,now+d);
+  o.connect(g);g.connect(ac.destination);
+  o.onended=()=>{o.disconnect();g.disconnect()};o.start(now);o.stop(now+d);
+ }catch(e){}};
+ if(ready)ready.then(play);else play();
+}
 function reset(){pen={x:portrait?W*.25:230,y:H/2,vy:0};obs=[];score=0;boostT=0;t=0;for(let i=0;i<4;i++)addObs(W+260+i*SPACE)}
 function addObs(x){
  const previous=obs.length?obs[obs.length-1].gapY:H/2;
@@ -117,7 +135,12 @@ function loop(n){const dt=Math.min(.033,(n-last)/1000);last=n;update(dt);draw();
 const KEYS=['Space'];        // keys that fire the jetpack
 const TOUCH_CONTROL=true;    // click/tap also flaps; set false for keyboard only
 cv.tabIndex=0;
-if(TOUCH_CONTROL)cv.addEventListener('pointerdown',e=>{e.preventDefault();cv.focus({preventScroll:true});flap()});
+if(TOUCH_CONTROL){
+ cv.addEventListener('pointerdown',e=>{e.preventDefault();unlockAudio();cv.focus({preventScroll:true});flap()});
+ // Touch activation is granted on release in browsers that block pointerdown audio.
+ cv.addEventListener('pointerup',unlockAudio);
+ cv.addEventListener('touchend',unlockAudio,{passive:true});
+}
 window.addEventListener('keydown',e=>{if(KEYS.includes(e.code)){e.preventDefault();if(!e.repeat)flap()}},true);
 window.focus();cv.focus();
 reset();overT=0;
