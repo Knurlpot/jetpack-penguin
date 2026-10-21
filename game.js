@@ -13,7 +13,8 @@ const R=21;             // penguin hitbox radius
 const cv=document.getElementById('c'),ctx=cv.getContext('2d');
 const FONT='"Press Start 2P",monospace';
 const IM={};let best=0;
-try{best=+localStorage.getItem('jp_best')||0}catch(e){}
+// Keep the best score across refreshes for this tab's session.
+try{best=+sessionStorage.getItem('jp_best')||0}catch(e){}
 let state='title',t=0,bgx=0,pen,obs,score,boostT,deadT,overT,ac;
 function load(){return Promise.all(['idle','boost','cave','title','over'].map(k=>new Promise(r=>{const i=new Image();i.onload=()=>{IM[k]=i;r()};i.src=AS[k]})))}
 function beep(f,d,type='square',v=.05){try{ac=ac||new (window.AudioContext||window.webkitAudioContext)();const o=ac.createOscillator(),g=ac.createGain();o.type=type;o.frequency.value=f;g.gain.value=v;g.gain.exponentialRampToValueAtTime(.001,ac.currentTime+d);o.connect(g);g.connect(ac.destination);o.start();o.stop(ac.currentTime+d)}catch(e){}}
@@ -45,7 +46,7 @@ function flap(){
  else if(state==='over'){if(overT>.45){reset();state='play'}else return}
  else if(state==='dead')return;
  pen.vy=FLAP;boostT=.18;beep(520,.08)}
-function die(){state='dead';deadT=0;pen.vy=-200;beep(120,.35,'sawtooth',.07);if(score>best){best=score;try{localStorage.setItem('jp_best',best)}catch(e){}}}
+function die(){state='dead';deadT=0;pen.vy=-200;beep(120,.35,'sawtooth',.07);if(score>best){best=score;try{sessionStorage.setItem('jp_best',best)}catch(e){}}}
 function update(dt){
  bgx=(bgx+(state==='dead'?0:60)*dt)%(W*2);
  if(state==='title'||state==='over'){overT+=dt;return}
