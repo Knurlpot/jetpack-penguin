@@ -1,6 +1,6 @@
 const AS={idle:'assets/penguin_idle.png',boost:'assets/penguin_boost.png',cave:'assets/cave.jpg',title:'assets/title_bg.jpg',over:'assets/gameover_bg.jpg',sw:282,sh:190}; // sprite/background files (sw, sh = sprite frame size)
 // ---- TWEAK ME ----
-const W=960,H=540;      // canvas size
+let W=960,H=540,portrait=false; // responsive game coordinates
 const GAP=205;          // vertical gap between stalactite and stalagmite
 const OW=130;           // obstacle width
 const SPEED=210;        // obstacle speed (px/s)
@@ -17,8 +17,23 @@ try{best=+localStorage.getItem('jp_best')||0}catch(e){}
 let state='title',t=0,bgx=0,pen,obs,score,boostT,deadT,overT,ac;
 function load(){return Promise.all(['idle','boost','cave','title','over'].map(k=>new Promise(r=>{const i=new Image();i.onload=()=>{IM[k]=i;r()};i.src=AS[k]})))}
 function beep(f,d,type='square',v=.05){try{ac=ac||new (window.AudioContext||window.webkitAudioContext)();const o=ac.createOscillator(),g=ac.createGain();o.type=type;o.frequency.value=f;g.gain.value=v;g.gain.exponentialRampToValueAtTime(.001,ac.currentTime+d);o.connect(g);g.connect(ac.destination);o.start();o.stop(ac.currentTime+d)}catch(e){}}
-function reset(){pen={x:230,y:H/2,vy:0};obs=[];score=0;boostT=0;t=0;for(let i=0;i<4;i++)addObs(W+260+i*SPACE)}
-function addObs(x){obs.push({x,gapY:150+Math.random()*(H-300),tx:Math.random(),passed:false})}
+function reset(){pen={x:portrait?W*.25:230,y:H/2,vy:0};obs=[];score=0;boostT=0;t=0;for(let i=0;i<4;i++)addObs(W+260+i*SPACE)}
+function addObs(x){
+ const previous=obs.length?obs[obs.length-1].gapY:H/2;
+ const gapY=portrait?Math.max(150,Math.min(H-150,previous+(Math.random()-.5)*240)):150+Math.random()*(H-300);
+ obs.push({x,gapY,tx:Math.random(),passed:false})}
+// Keep the full game visible; preserve the current run when the viewport changes.
+function resize(){
+ const bounds=cv.getBoundingClientRect(),oldW=W,oldH=H;
+ portrait=window.matchMedia('(max-width: 768px) and (orientation: portrait)').matches;
+ W=portrait?540:960;H=portrait?Math.round(W*bounds.height/bounds.width):540;
+ cv.width=W;cv.height=H;
+ if(pen){pen.x=portrait?W*.25:230;pen.y=Math.max(24,Math.min(H-22,pen.y*H/oldH));
+  obs.forEach(o=>{o.x=pen.x+(o.x-(oldW===960?230:oldW*.25))*W/oldW;o.gapY=Math.max(150,Math.min(H-150,o.gapY*H/oldH))})}
+ bgx=0;
+}
+window.addEventListener('resize',resize);
+resize();
 function poly(o,top){const h=top?o.gapY-GAP/2:H-(o.gapY+GAP/2),w=OW;
 const rel=[[0,0],[w,0],[w,h*.35],[w*.82,h*.6],[w*.62,h*.82],[w*.5,h],[w*.36,h*.8],[w*.16,h*.55],[0,h*.3]];
 return rel.map(([a,b])=>[o.x+a,top?b:H-b])}
@@ -41,8 +56,12 @@ function update(dt){
  if(pen.y>H-22){return die()}
  for(const o of obs){o.x-=SPEED*dt;if(!o.passed&&o.x+OW<pen.x){o.passed=true;score++;beep(880,.1,'triangle',.06)}if(hit(o))return die()}
  if(obs[0].x<-OW-20){obs.shift();addObs(obs[obs.length-1].x+SPACE)}}
-function cover(img,a=1){ctx.globalAlpha=a;ctx.drawImage(img,0,0,W,H);ctx.globalAlpha=1}
-function drawBg(){const c=IM.cave,x=-bgx;for(let i=0;i<3;i++){const ox=x+i*W;if(ox>W||ox+W<0)continue;ctx.save();if(i%2){ctx.translate(ox+W,0);ctx.scale(-1,1);ctx.drawImage(c,0,0,W,H)}else ctx.drawImage(c,ox,0,W,H);ctx.restore()}
+function sceneImage(img,x=0){
+ const scale=Math.max(W/img.width,H/img.height),sw=W/scale,sh=H/scale;
+ ctx.drawImage(img,(img.width-sw)/2,(img.height-sh)/2,sw,sh,x,0,W,H);
+}
+function cover(img,a=1){ctx.globalAlpha=a;sceneImage(img);ctx.globalAlpha=1}
+function drawBg(){const c=IM.cave,x=-bgx;for(let i=0;i<3;i++){const ox=x+i*W;if(ox>W||ox+W<0)continue;ctx.save();if(i%2){ctx.translate(ox+W,0);ctx.scale(-1,1);sceneImage(c)}else sceneImage(c,ox);ctx.restore()}
  ctx.fillStyle='rgba(4,8,36,.3)';ctx.fillRect(0,0,W,H)}
 function drawObs(o){for(const top of [true,false]){
  const h=top?o.gapY-GAP/2:H-(o.gapY+GAP/2),p=poly(o,top),c=IM.cave,k=c.width/W,sw=OW*k,sh=Math.min(h*k,c.height*.9),sx=o.tx*(c.width-sw);
@@ -57,18 +76,18 @@ function drawPen(){
  const rot=state==='title'?Math.sin(performance.now()/300)*.08:Math.max(-.45,Math.min(1.1,pen.vy/700));ctx.rotate(rot);
  const img=boostT>0&&state!=='dead'?IM.boost:IM.idle;
  ctx.drawImage(img,-PX*S,-PY*S,AS.sw*S,AS.sh*S);ctx.restore()}
-function text(s,x,y,size,col='#fff',al='center'){ctx.font=size+'px '+FONT;ctx.textAlign=al;ctx.textBaseline='middle';ctx.lineJoin='round';ctx.lineWidth=size/4;ctx.strokeStyle='#070b2a';ctx.strokeText(s,x,y);ctx.fillStyle=col;ctx.fillText(s,x,y)}
+function text(s,x,y,size,col='#fff',al='center'){size=Math.min(size,(W-40)/Math.max(1,s.length));ctx.font=size+'px '+FONT;ctx.textAlign=al;ctx.textBaseline='middle';ctx.lineJoin='round';ctx.lineWidth=size/4;ctx.strokeStyle='#070b2a';ctx.strokeText(s,x,y);ctx.fillStyle=col;ctx.fillText(s,x,y)}
 function draw(){
  const scene=state==='title'?'title':state==='over'?'over':'cave';
  if(document.body.dataset.scene!==scene)document.body.dataset.scene=scene;
  ctx.clearRect(0,0,W,H);
  if(state==='title'){cover(IM.title);ctx.fillStyle='rgba(4,8,36,.25)';ctx.fillRect(0,0,W,H);
   text('JETPACK',W/2,95,54,'#ffd35a');text('PENGUIN',W/2,160,54,'#fff');
-  if(Math.floor(performance.now()/550)%2)text('PRESS SPACEBAR',W/2,H-70,22);
+  if(Math.floor(performance.now()/550)%2)text(portrait?'TAP TO START':'TAP ANYWHERE TO PLAY',W/2,H-70,22);
   text('BEST '+best,W/2,H-30,14,'#a8dcff');return}
  if(state==='over'){cover(IM.over);ctx.fillStyle='rgba(4,8,36,.5)';ctx.fillRect(0,0,W,H);
   text('GAME OVER',W/2,110,46,'#ff6b5a');text('SCORE '+score,W/2,200,26);text('BEST '+best,W/2,248,20,'#ffd35a');
-  if(overT>.45&&Math.floor(performance.now()/550)%2)text('PRESS SPACEBAR TO RETRY',W/2,H-60,18);return}
+  if(overT>.45&&Math.floor(performance.now()/550)%2)text(portrait?'TAP TO RETRY':'PRESS SPACEBAR TO RETRY',W/2,H-60,18);return}
  drawBg();obs.forEach(drawObs);drawPen();
  text(score,W/2,60,48);
  if(state==='dead'&&deadT<.12){ctx.fillStyle='rgba(255,255,255,.6)';ctx.fillRect(0,0,W,H)}}

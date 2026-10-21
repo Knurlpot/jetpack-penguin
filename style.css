@@ -11,3 +11,9 @@ body[data-scene="over"]::before{background-image:linear-gradient(rgba(4,8,36,.5)
 canvas{position:relative}
 canvas{width:min(100vw,calc((100vh - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px))*16/9));aspect-ratio:16/9;touch-action:none;display:block;cursor:pointer}
 @supports(height:100dvh){canvas{width:min(100vw,calc((100dvh - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px))*16/9))}html,body{height:100dvh}}
+
+/* Portrait phones use the entire viewport as the playable area. */
+@media(max-width:768px) and (orientation:portrait){
+ :root{padding:0}
+ canvas{width:100vw;height:100vh;height:100dvh;aspect-ratio:auto}
+}
