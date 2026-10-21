@@ -36,7 +36,12 @@ function resize(){
 window.addEventListener('resize',resize);
 resize();
 function poly(o,top){const h=top?o.gapY-GAP/2:H-(o.gapY+GAP/2),w=OW;
-const rel=[[0,0],[w,0],[w,h*.35],[w*.82,h*.6],[w*.62,h*.82],[w*.5,h],[w*.36,h*.8],[w*.16,h*.55],[0,h*.3]];
+// Straight sides with rounded end corners. Extend the base beyond the
+// viewport so the obstacle joins the screen edge without a visible seam.
+const r=Math.min(32,h/2,w/2),rel=[[0,-8],[w,-8],[w,h-r]];
+for(let i=1;i<=16;i++){const a=i*Math.PI/32;rel.push([w-r+r*Math.cos(a),h-r+r*Math.sin(a)])}
+rel.push([r,h]);
+for(let i=1;i<=16;i++){const a=Math.PI/2+i*Math.PI/32;rel.push([r+r*Math.cos(a),h-r+r*Math.sin(a)])}
 return rel.map(([a,b])=>[o.x+a,top?b:H-b])}
 function segDist(px,py,a,b){const dx=b[0]-a[0],dy=b[1]-a[1],l=dx*dx+dy*dy;let u=l?((px-a[0])*dx+(py-a[1])*dy)/l:0;u=Math.max(0,Math.min(1,u));return Math.hypot(px-a[0]-u*dx,py-a[1]-u*dy)}
 function inPoly(px,py,p){let c=false;for(let i=0,j=p.length-1;i<p.length;j=i++){if((p[i][1]>py)!=(p[j][1]>py)&&px<(p[j][0]-p[i][0])*(py-p[i][1])/(p[j][1]-p[i][1])+p[i][0])c=!c}return c}
@@ -61,7 +66,19 @@ function sceneImage(img,x=0){
  const scale=Math.max(W/img.width,H/img.height),sw=W/scale,sh=H/scale;
  ctx.drawImage(img,(img.width-sw)/2,(img.height-sh)/2,sw,sh,x,0,W,H);
 }
-function cover(img,a=1){ctx.globalAlpha=a;sceneImage(img);ctx.globalAlpha=1}
+function cover(img,a=1){
+ ctx.globalAlpha=a;
+ if(portrait){
+  // Keep the whole character in the central crop; extend sky and ground
+  // to fill tall screens instead of zooming in and cutting off the penguin.
+  const sw=img.width*.5,sx=(img.width-sw)/2,dh=W*img.height/sw;
+  const y=(H-dh)/2;
+  if(y>0)ctx.drawImage(img,sx,0,sw,1,0,0,W,y+1);
+  ctx.drawImage(img,sx,0,sw,img.height,0,y,W,dh);
+  if(y>0)ctx.drawImage(img,sx,img.height-1,sw,1,0,y+dh-1,W,H-y-dh+1);
+ }else sceneImage(img);
+ ctx.globalAlpha=1;
+}
 function drawBg(){const c=IM.cave,x=-bgx;for(let i=0;i<3;i++){const ox=x+i*W;if(ox>W||ox+W<0)continue;ctx.save();if(i%2){ctx.translate(ox+W,0);ctx.scale(-1,1);sceneImage(c)}else sceneImage(c,ox);ctx.restore()}
  ctx.fillStyle='rgba(4,8,36,.3)';ctx.fillRect(0,0,W,H)}
 function drawObs(o){for(const top of [true,false]){
@@ -90,7 +107,7 @@ function draw(){
   text('GAME OVER',W/2,110,46,'#ff6b5a');text('SCORE '+score,W/2,200,26);text('BEST '+best,W/2,248,20,'#ffd35a');
   if(overT>.45&&Math.floor(performance.now()/550)%2)text(portrait?'TAP TO RETRY':'PRESS SPACEBAR TO RETRY',W/2,H-60,18);return}
  drawBg();obs.forEach(drawObs);drawPen();
- text(score,W/2,60,48);
+ text(String(score),W/2,90,80);
  if(state==='dead'&&deadT<.12){ctx.fillStyle='rgba(255,255,255,.6)';ctx.fillRect(0,0,W,H)}}
 let last=performance.now();
 function loop(n){const dt=Math.min(.033,(n-last)/1000);last=n;update(dt);draw();requestAnimationFrame(loop)}
