@@ -27,11 +27,15 @@ function addObs(x){
 function resize(){
  const bounds=cv.getBoundingClientRect(),oldW=W,oldH=H;
  portrait=window.matchMedia('(max-width: 768px) and (orientation: portrait)').matches;
- W=portrait?540:960;H=portrait?Math.round(W*bounds.height/bounds.width):540;
+ const nextW=portrait?540:960,nextH=portrait?Math.round(nextW*bounds.height/bounds.width):540;
+ // Assigning canvas dimensions clears its pixels, even if the size is unchanged.
+ if(W===nextW&&H===nextH&&cv.width===nextW&&cv.height===nextH)return;
+ W=nextW;H=nextH;
  cv.width=W;cv.height=H;
  if(pen){pen.x=portrait?W*.25:230;pen.y=Math.max(24,Math.min(H-22,pen.y*H/oldH));
   obs.forEach(o=>{o.x=pen.x+(o.x-(oldW===960?230:oldW*.25))*W/oldW;o.gapY=Math.max(150,Math.min(H-150,o.gapY*H/oldH))})}
  bgx=0;
+ if(IM.title&&IM.over&&IM.cave)draw();
 }
 window.addEventListener('resize',resize);
 resize();
@@ -101,20 +105,19 @@ function draw(){
  ctx.clearRect(0,0,W,H);
  if(state==='title'){cover(IM.title);ctx.fillStyle='rgba(4,8,36,.25)';ctx.fillRect(0,0,W,H);
   text('JETPACK',W/2,95,54,'#ffd35a');text('PENGUIN',W/2,160,54,'#fff');
-  if(Math.floor(performance.now()/550)%2)text(portrait?'TAP TO START':'TAP ANYWHERE TO PLAY',W/2,H-70,22);
+  text(portrait?'TAP TO START':'TAP ANYWHERE TO PLAY',W/2,H-70,22);
   text('BEST '+best,W/2,H-30,14,'#a8dcff');return}
  if(state==='over'){cover(IM.over);ctx.fillStyle='rgba(4,8,36,.5)';ctx.fillRect(0,0,W,H);
   text('GAME OVER',W/2,110,46,'#ff6b5a');text('SCORE '+score,W/2,200,26);text('BEST '+best,W/2,248,20,'#ffd35a');
-  if(overT>.45&&Math.floor(performance.now()/550)%2)text(portrait?'TAP TO RETRY':'PRESS SPACEBAR TO RETRY',W/2,H-60,18);return}
+  if(overT>.45)text(portrait?'TAP TO RETRY':'PRESS SPACEBAR TO RETRY',W/2,H-60,18);return}
  drawBg();obs.forEach(drawObs);drawPen();
- text(String(score),W/2,90,80);
- if(state==='dead'&&deadT<.12){ctx.fillStyle='rgba(255,255,255,.6)';ctx.fillRect(0,0,W,H)}}
+ text(String(score),W/2,90,80)}
 let last=performance.now();
 function loop(n){const dt=Math.min(.033,(n-last)/1000);last=n;update(dt);draw();requestAnimationFrame(loop)}
 const KEYS=['Space'];        // keys that fire the jetpack
 const TOUCH_CONTROL=true;    // click/tap also flaps; set false for keyboard only
 cv.tabIndex=0;
-if(TOUCH_CONTROL)cv.addEventListener('pointerdown',e=>{e.preventDefault();cv.focus();flap()});
+if(TOUCH_CONTROL)cv.addEventListener('pointerdown',e=>{e.preventDefault();cv.focus({preventScroll:true});flap()});
 window.addEventListener('keydown',e=>{if(KEYS.includes(e.code)){e.preventDefault();if(!e.repeat)flap()}},true);
 window.focus();cv.focus();
 reset();overT=0;
