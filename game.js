@@ -59,6 +59,8 @@ function drawPen(){
  ctx.drawImage(img,-PX*S,-PY*S,AS.sw*S,AS.sh*S);ctx.restore()}
 function text(s,x,y,size,col='#fff',al='center'){ctx.font=size+'px '+FONT;ctx.textAlign=al;ctx.textBaseline='middle';ctx.lineJoin='round';ctx.lineWidth=size/4;ctx.strokeStyle='#070b2a';ctx.strokeText(s,x,y);ctx.fillStyle=col;ctx.fillText(s,x,y)}
 function draw(){
+ const scene=state==='title'?'title':state==='over'?'over':'cave';
+ if(document.body.dataset.scene!==scene)document.body.dataset.scene=scene;
  ctx.clearRect(0,0,W,H);
  if(state==='title'){cover(IM.title);ctx.fillStyle='rgba(4,8,36,.25)';ctx.fillRect(0,0,W,H);
   text('JETPACK',W/2,95,54,'#ffd35a');text('PENGUIN',W/2,160,54,'#fff');
