@@ -75,11 +75,11 @@ document.getElementById('btn-save').addEventListener('click',async ()=>{
  if(!n)return playerNameInput.focus();
  await lbPost(n,score);
  hideNameModal();
- goToTitle();
+ overT=0; // show the Game Over screen and wait for tap
 });
 document.getElementById('btn-skip').addEventListener('click',()=>{
  hideNameModal();
- goToTitle();
+ overT=0; // show the Game Over screen and wait for tap
 });
 playerNameInput.addEventListener('keydown',e=>{
  if(e.key==='Enter'){document.getElementById('btn-save').click();e.preventDefault();}
@@ -96,23 +96,58 @@ function updateTrophyVisibility(){
  else trophyBtn.classList.add('hidden');
 }
 // ---- Title screen penguin animation ----
-// The penguin bobs up/down and periodically fires the jetpack on the title screen.
-let titlePen={y:0,vy:0,boostT:0,flapTimer:1.2};
-function initTitlePen(){titlePen={y:H/2,vy:0,boostT:0,flapTimer:1.2}}
-function updateTitlePen(dt){
- titlePen.flapTimer-=dt;
- if(titlePen.flapTimer<=0){titlePen.vy=FLAP;titlePen.boostT=.25;titlePen.flapTimer=1.4+Math.random()*.8}
- titlePen.boostT=Math.max(0,titlePen.boostT-dt);
- titlePen.vy+=G*dt;
- titlePen.y+=titlePen.vy*dt;
- if(titlePen.y<H*.2){titlePen.y=H*.2;titlePen.vy=Math.abs(titlePen.vy)*.3}
- if(titlePen.y>H*.8){titlePen.y=H*.8;titlePen.vy=-Math.abs(titlePen.vy)*.3}
+// The big centerpiece penguin floats/shakes in place and fires its jetpack on & off
+let titleTimer = 0;
+function initTitlePen() {
+ titleTimer = 0;
 }
-function drawTitlePen(){
- ctx.save();ctx.translate(portrait?W*.25:230,titlePen.y);
- const rot=Math.max(-.45,Math.min(1.1,titlePen.vy/700));ctx.rotate(rot);
- const img=titlePen.boostT>0?IM.boost:IM.idle;
- ctx.drawImage(img,-PX*S,-PY*S,AS.sw*S,AS.sh*S);ctx.restore();
+function updateTitlePen(dt) {
+ titleTimer += dt;
+}
+function drawTitlePen() {
+ // The title background is 1280x714, mapped to (W, H) via cover()
+ const imgW = IM.title.width, imgH = IM.title.height;
+ const scale = portrait ? (W / (imgW * 0.5)) : Math.max(W / imgW, H / imgH);
+ 
+ // In original title_bg (1280x714), the penguin was at x: 276, y: 198 (size 564x380, center approx x: 558, y: 388)
+ const origCenterX = 558;
+ const origCenterY = 388;
+ 
+ // Screen coordinates based on cover() mapping
+ let screenX, screenY;
+ if (portrait) {
+  const sw = imgW * 0.5, sx = (imgW - sw) / 2;
+  const dh = W * imgH / sw;
+  const offsetY = (H - dh) / 2;
+  screenX = (origCenterX - sx) * (W / sw);
+  screenY = offsetY + origCenterY * (dh / imgH);
+ } else {
+  const sw = W / scale, sh = H / scale;
+  const sx = (imgW - sw) / 2, sy = (imgH - sh) / 2;
+  screenX = (origCenterX - sx) * scale;
+  screenY = (origCenterY - sy) * scale;
+ }
+
+ // Jetpack activation alternates: 1.4s boosting, 1.2s idle
+ const cycle = titleTimer % 2.6;
+ const isBoosting = cycle < 1.4;
+
+ // Floating bob + subtle vibration/shake when jetpack is active
+ const bobY = Math.sin(titleTimer * 2.8) * 8;
+ const bobX = Math.cos(titleTimer * 1.4) * 3;
+ const shakeX = isBoosting ? (Math.random() - 0.5) * 3.5 : (Math.random() - 0.5) * 0.8;
+ const shakeY = isBoosting ? (Math.random() - 0.5) * 3.5 : (Math.random() - 0.5) * 0.8;
+ const tilt = Math.sin(titleTimer * 2.2) * 0.04 + (isBoosting ? 0.03 : -0.02);
+
+ ctx.save();
+ ctx.translate(screenX + bobX + shakeX, screenY + bobY + shakeY);
+ ctx.rotate(tilt);
+
+ // Draw the big penguin matching the original 2x pixel size scaled to canvas
+ const penScale = scale * 2;
+ const img = isBoosting ? IM.boost : IM.idle;
+ ctx.drawImage(img, -PX * penScale, -PY * penScale, AS.sw * penScale, AS.sh * penScale);
+ ctx.restore();
 }
 function load(){return Promise.all(['idle','boost','cave','title','over'].map(k=>new Promise(r=>{const i=new Image();i.onload=()=>{IM[k]=i;r()};i.src=AS[k]})))}
 // Mobile browsers can suspend audio until a completed tap unlocks it.
@@ -168,7 +203,12 @@ function inPoly(px,py,p){let c=false;for(let i=0,j=p.length-1;i<p.length;j=i++){
 function hit(o){for(const top of [true,false]){const p=poly(o,top);if(inPoly(pen.x,pen.y,p))return true;for(let i=0;i<p.length;i++)if(segDist(pen.x,pen.y,p[i],p[(i+1)%p.length])<R)return true}return false}
 function flap(){
  if(state==='title'){reset();state='play';updateTrophyVisibility()}
- else if(state==='over')return; // name modal handles the transition
+ else if(state==='over'){
+  if(overT>.3 && nameModal.classList.contains('hidden')){
+   goToTitle();
+  }
+  return;
+ }
  else if(state==='dead')return;
  pen.vy=FLAP;boostT=.18;beep(520,.08)}
 function die(){state='dead';deadT=0;pen.vy=-200;beep(120,.35,'sawtooth',.07);if(score>best){best=score;try{sessionStorage.setItem('jp_best',best)}catch(e){}}}
@@ -226,7 +266,8 @@ function draw(){
   text(portrait?'TAP TO START':'TAP ANYWHERE TO PLAY',W/2,H-70,22);
   text('BEST '+best,W/2,H-30,14,'#a8dcff');return}
  if(state==='over'){cover(IM.over);ctx.fillStyle='rgba(4,8,36,.5)';ctx.fillRect(0,0,W,H);
-  text('GAME OVER',W/2,H/2-40,46,'#ff6b5a');text('SCORE '+score,W/2,H/2+20,26);return}
+  text('GAME OVER',W/2,110,46,'#ff6b5a');text('SCORE '+score,W/2,200,26);text('BEST '+best,W/2,248,20,'#ffd35a');
+  if(overT>.3&&nameModal.classList.contains('hidden'))text(portrait?'TAP TO CONTINUE':'PRESS SPACEBAR TO CONTINUE',W/2,H-60,18);return}
  drawBg();obs.forEach(drawObs);drawPen();
  text(String(score),W/2,90,80)}
 let last=performance.now();
