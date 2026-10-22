@@ -9,6 +9,32 @@
 </head>
 <body>
 <canvas id="c" width="960" height="540"></canvas>
+
+<!-- Trophy button (visible on title screen) -->
+<button id="trophy-btn" title="Leaderboard"><span class="trophy-sprite"></span></button>
+
+<!-- Name-entry modal (shown after game over) -->
+<div id="name-modal" class="hidden">
+  <div class="modal-box">
+    <h2>GAME OVER</h2>
+    <p>SCORE: <span id="modal-score"></span></p>
+    <p>Enter your name to save your score:</p>
+    <input id="player-name" type="text" maxlength="10" placeholder="YOUR NAME" autocomplete="off" spellcheck="false">
+    <div class="modal-btns">
+      <button class="btn-save" id="btn-save">SAVE</button>
+      <button class="btn-skip" id="btn-skip">SKIP</button>
+    </div>
+  </div>
+</div>
+
+<!-- Leaderboard modal -->
+<div id="lb-modal" class="hidden">
+  <div class="modal-box">
+    <h2><span class="trophy-sprite" style="width:28px;height:28px;vertical-align:middle;display:inline-block;margin-right:8px"></span> LEADERBOARD</h2>
+    <div id="lb-list"></div>
+    <button class="btn-close" id="lb-close">CLOSE</button>
+  </div>
+</div>
 <script src="game.js"></script>
 <script defer src="/_vercel/insights/script.js"></script>
 </body>

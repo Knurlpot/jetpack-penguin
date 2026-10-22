@@ -16,6 +16,76 @@ const IM={};let best=0;
 // Keep the best score across refreshes for this tab's session.
 try{best=+sessionStorage.getItem('jp_best')||0}catch(e){}
 let state='title',t=0,bgx=0,pen,obs,score,boostT,deadT,overT,ac;
+
+// ---- LEADERBOARD ----
+const LB_KEY='jp_leaderboard';
+function lbLoad(){try{return JSON.parse(localStorage.getItem(LB_KEY))||[]}catch(e){return[]}}
+function lbSave(name,s){
+ const board=lbLoad();
+ board.push({name:name.toUpperCase().slice(0,10),score:s});
+ board.sort((a,b)=>b.score-a.score);
+ board.splice(10);
+ try{localStorage.setItem(LB_KEY,JSON.stringify(board))}catch(e){}
+ // refresh displayed best
+ if(s>best){best=s;try{sessionStorage.setItem('jp_best',best)}catch(e){}}
+}
+// UI refs
+const nameModal=document.getElementById('name-modal');
+const lbModal=document.getElementById('lb-modal');
+const trophyBtn=document.getElementById('trophy-btn');
+const playerNameInput=document.getElementById('player-name');
+const modalScoreEl=document.getElementById('modal-score');
+const lbList=document.getElementById('lb-list');
+
+function showNameModal(s){
+ modalScoreEl.textContent=s;
+ playerNameInput.value='';
+ nameModal.classList.remove('hidden');
+ setTimeout(()=>playerNameInput.focus(),60);
+}
+function hideNameModal(){nameModal.classList.add('hidden')}
+
+function showLbModal(){
+ const board=lbLoad();
+ if(board.length===0){
+  lbList.innerHTML='<p class="lb-empty">No scores yet.<br>Be the first!</p>';
+ }else{
+  const starClass=['star-1','star-2','star-3'];
+  lbList.innerHTML=board.map((e,i)=>`
+   <div class="lb-row">
+    <span class="lb-rank">${i<3?`<span class="star-sprite ${starClass[i]}"></span>`:'#'+(i+1)}</span>
+    <span class="lb-name">${e.name}</span>
+    <span class="lb-score">${e.score}</span>
+   </div>`).join('');
+ }
+ lbModal.classList.remove('hidden');
+}
+function hideLbModal(){lbModal.classList.add('hidden')}
+
+document.getElementById('btn-save').addEventListener('click',()=>{
+ const n=playerNameInput.value.trim();
+ if(!n)return playerNameInput.focus();
+ lbSave(n,score);
+ hideNameModal();
+ // re-enter over state so the canvas shows normally
+});
+document.getElementById('btn-skip').addEventListener('click',()=>{
+ hideNameModal();
+});
+playerNameInput.addEventListener('keydown',e=>{
+ if(e.key==='Enter'){document.getElementById('btn-save').click();e.preventDefault();}
+ if(e.key==='Escape'){document.getElementById('btn-skip').click();e.preventDefault();}
+ e.stopPropagation(); // don't let Space/Enter trigger flap
+});
+trophyBtn.addEventListener('click',e=>{e.stopPropagation();showLbModal()});
+document.getElementById('lb-close').addEventListener('click',hideLbModal);
+// Close lb modal on backdrop click
+lbModal.addEventListener('click',e=>{if(e.target===lbModal)hideLbModal()});
+
+function updateTrophyVisibility(){
+ if(state==='title')trophyBtn.classList.remove('hidden');
+ else trophyBtn.classList.add('hidden');
+}
 function load(){return Promise.all(['idle','boost','cave','title','over'].map(k=>new Promise(r=>{const i=new Image();i.onload=()=>{IM[k]=i;r()};i.src=AS[k]})))}
 // Mobile browsers can suspend audio until a completed tap unlocks it.
 function unlockAudio(){
@@ -69,8 +139,8 @@ function segDist(px,py,a,b){const dx=b[0]-a[0],dy=b[1]-a[1],l=dx*dx+dy*dy;let u=
 function inPoly(px,py,p){let c=false;for(let i=0,j=p.length-1;i<p.length;j=i++){if((p[i][1]>py)!=(p[j][1]>py)&&px<(p[j][0]-p[i][0])*(py-p[i][1])/(p[j][1]-p[i][1])+p[i][0])c=!c}return c}
 function hit(o){for(const top of [true,false]){const p=poly(o,top);if(inPoly(pen.x,pen.y,p))return true;for(let i=0;i<p.length;i++)if(segDist(pen.x,pen.y,p[i],p[(i+1)%p.length])<R)return true}return false}
 function flap(){
- if(state==='title'){reset();state='play'}
- else if(state==='over'){if(overT>.45){reset();state='play'}else return}
+ if(state==='title'){reset();state='play';updateTrophyVisibility()}
+ else if(state==='over'){if(overT>.45&&nameModal.classList.contains('hidden')){reset();state='play';updateTrophyVisibility()}else return}
  else if(state==='dead')return;
  pen.vy=FLAP;boostT=.18;beep(520,.08)}
 function die(){state='dead';deadT=0;pen.vy=-200;beep(120,.35,'sawtooth',.07);if(score>best){best=score;try{sessionStorage.setItem('jp_best',best)}catch(e){}}}
@@ -79,7 +149,7 @@ function update(dt){
  if(state==='title'||state==='over'){overT+=dt;return}
  t+=dt;boostT=Math.max(0,boostT-dt);
  pen.vy+=G*dt;pen.y+=pen.vy*dt;
- if(state==='dead'){deadT+=dt;if(deadT>.8){state='over';overT=0}return}
+ if(state==='dead'){deadT+=dt;if(deadT>.8){state='over';overT=0;updateTrophyVisibility();showNameModal(score)}return}
  if(pen.y<24){pen.y=24;pen.vy=Math.max(pen.vy,0)}
  if(pen.y>H-22){return die()}
  for(const o of obs){o.x-=SPEED*dt;if(!o.passed&&o.x+OW<pen.x){o.passed=true;score++;beep(880,.1,'triangle',.06)}if(hit(o))return die()}
@@ -143,5 +213,5 @@ if(TOUCH_CONTROL){
 }
 window.addEventListener('keydown',e=>{if(KEYS.includes(e.code)){e.preventDefault();if(!e.repeat)flap()}},true);
 window.focus();cv.focus();
-reset();overT=0;
+reset();overT=0;updateTrophyVisibility();
 load().then(()=>requestAnimationFrame(loop));
