@@ -108,9 +108,9 @@ function updateTrophyVisibility(){
  else trophyBtn.classList.add('hidden');
 }
 // ---- Title screen penguin animation ----
-// The penguin bobs up/down and periodically fires the jetpack on the title screen.
+// The large penguin in the title artwork gets its own idle/boost animation.
 let titlePen={y:0,vy:0,boostT:0,flapTimer:1.2};
-function initTitlePen(){titlePen={y:H/2,vy:0,boostT:0,flapTimer:1.2}}
+function initTitlePen(){titlePen={y:H*.49,vy:0,boostT:0,flapTimer:1.2}}
 function updateTitlePen(dt){
  titlePen.flapTimer-=dt;
  if(titlePen.flapTimer<=0){titlePen.vy=FLAP;titlePen.boostT=.25;titlePen.flapTimer=1.4+Math.random()*.8}
@@ -121,10 +121,13 @@ function updateTitlePen(dt){
  if(titlePen.y>H*.8){titlePen.y=H*.8;titlePen.vy=-Math.abs(titlePen.vy)*.3}
 }
 function drawTitlePen(){
- ctx.save();ctx.translate(portrait?W*.25:230,titlePen.y);
- const rot=Math.max(-.45,Math.min(1.1,titlePen.vy/700));ctx.rotate(rot);
+ const x=portrait?W*.5:W*.52;
+ const scale=portrait?1.05:1.32;
+ const shake=titlePen.boostT>0?Math.sin(performance.now()/35)*2.5:Math.sin(performance.now()/420)*1.2;
+ ctx.save();ctx.translate(x+shake,titlePen.y+shake*.35);
+ const rot=Math.sin(performance.now()/520)*.035+(titlePen.boostT>0?Math.sin(performance.now()/28)*.025:0);ctx.rotate(rot);
  const img=titlePen.boostT>0?IM.boost:IM.idle;
- ctx.drawImage(img,-PX*S,-PY*S,AS.sw*S,AS.sh*S);ctx.restore();
+ ctx.drawImage(img,-PX*scale,-PY*scale,AS.sw*scale,AS.sh*scale);ctx.restore();
 }
 function load(){return Promise.all(['idle','boost','cave','title','over'].map(k=>new Promise(r=>{const i=new Image();i.onload=()=>{IM[k]=i;r()};i.src=AS[k]})))}
 // Mobile browsers can suspend audio until a completed tap unlocks it.
@@ -240,10 +243,9 @@ function draw(){
  if(document.body.dataset.scene!==scene)document.body.dataset.scene=scene;
  ctx.clearRect(0,0,W,H);
  if(state==='title'){
-  // The large penguin is part of the title artwork. Float the artwork gently
-  // so that penguin moves without drawing the separate small sprite.
-  const bob=Math.sin(performance.now()/520)*7;
-  ctx.save();ctx.translate(0,bob);cover(IM.title);ctx.restore();
+  // Keep the title background still; animate the large penguin separately.
+  cover(IM.title);
+  drawTitlePen();
   ctx.fillStyle='rgba(4,8,36,.25)';ctx.fillRect(0,0,W,H);
   if(portrait){text('JETPACK',W/2,100,34,'#ffd35a');text('PENGUIN',W/2,142,34,'#fff')}else{text('JETPACK',W/2,95,54,'#ffd35a');text('PENGUIN',W/2,160,54,'#fff')}
   text(portrait?'TAP TO START':'TAP ANYWHERE TO PLAY',W/2,H-70,22);
