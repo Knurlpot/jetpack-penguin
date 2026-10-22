@@ -220,17 +220,6 @@ function cover(img,a=1){
 }
 function drawBg(){const c=IM.cave,x=-bgx;for(let i=0;i<3;i++){const ox=x+i*W;if(ox>W||ox+W<0)continue;ctx.save();if(i%2){ctx.translate(ox+W,0);ctx.scale(-1,1);sceneImage(c)}else sceneImage(c,ox);ctx.restore()}
  ctx.fillStyle='rgba(4,8,36,.3)';ctx.fillRect(0,0,W,H)}
-function clearTitlePenguin(){
- // title_bg.jpg contains a decorative penguin. Cover that baked-in character
- // with matching sky/ground bands before drawing the animated sprite.
- const y=H*.39, h=H*.47;
- ctx.save();
- ctx.beginPath();ctx.rect(W*.34,y,W*.32,h);ctx.clip();
- const left=W*.08, right=W*.66;
- ctx.drawImage(IM.title,left,y,W*.26,h,W*.34,y,W*.32,h);
- ctx.drawImage(IM.title,right,y,W*.26,h,W*.34,y,W*.32,h);
- ctx.restore();
-}
 function drawObs(o){for(const top of [true,false]){
  const h=top?o.gapY-GAP/2:H-(o.gapY+GAP/2),p=poly(o,top),c=IM.cave,k=c.width/W,sw=OW*k,sh=Math.min(h*k,c.height*.9),sx=o.tx*(c.width-sw);
  const path=new Path2D();p.forEach(([a,b],i)=>i?path.lineTo(a,b):path.moveTo(a,b));path.closePath();
@@ -250,9 +239,9 @@ function draw(){
  if(document.body.dataset.scene!==scene)document.body.dataset.scene=scene;
  ctx.clearRect(0,0,W,H);
  if(state==='title'){
-  cover(IM.title);
-  clearTitlePenguin();
-  drawTitlePen();
+  // title_bg.jpg already contains the single penguin for the title screen.
+  const bob=Math.sin(performance.now()/520)*1.2;
+  ctx.save();ctx.translate(0,bob);cover(IM.title);ctx.restore();
   ctx.fillStyle='rgba(4,8,36,.25)';ctx.fillRect(0,0,W,H);
   if(portrait){text('JETPACK',W/2,100,34,'#ffd35a');text('PENGUIN',W/2,142,34,'#fff')}else{text('JETPACK',W/2,95,54,'#ffd35a');text('PENGUIN',W/2,160,54,'#fff')}
   text(portrait?'TAP TO START':'TAP ANYWHERE TO PLAY',W/2,H-70,22);
