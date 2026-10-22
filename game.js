@@ -17,17 +17,17 @@ const IM={};let best=0;
 try{best=+sessionStorage.getItem('jp_best')||0}catch(e){}
 let state='title',t=0,bgx=0,pen,obs,score,boostT,deadT,overT,ac;
 
-// ---- LEADERBOARD ----
-const LB_KEY='jp_leaderboard';
-function lbLoad(){try{return JSON.parse(localStorage.getItem(LB_KEY))||[]}catch(e){return[]}}
-function lbSave(name,s){
- const board=lbLoad();
- board.push({name:name.toUpperCase().slice(0,10),score:s});
- board.sort((a,b)=>b.score-a.score);
- board.splice(10);
- try{localStorage.setItem(LB_KEY,JSON.stringify(board))}catch(e){}
- // refresh displayed best
- if(s>best){best=s;try{sessionStorage.setItem('jp_best',best)}catch(e){}}
+// ---- LEADERBOARD  (Vercel KV via /api/scores) ----
+async function lbPost(name, s) {
+  try {
+    await fetch('/api/scores', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: name.toUpperCase().slice(0, 10), score: s }),
+    });
+  } catch (e) { console.warn('lbPost failed', e); }
+  // keep session-best in sync
+  if (s > best) { best = s; try { sessionStorage.setItem('jp_best', best); } catch (e) {} }
 }
 // UI refs
 const nameModal=document.getElementById('name-modal');
@@ -45,32 +45,41 @@ function showNameModal(s){
 }
 function hideNameModal(){nameModal.classList.add('hidden')}
 
-function showLbModal(){
- const board=lbLoad();
- if(board.length===0){
-  lbList.innerHTML='<p class="lb-empty">No scores yet.<br>Be the first!</p>';
- }else{
-  const starClass=['star-1','star-2','star-3'];
-  lbList.innerHTML=board.map((e,i)=>`
-   <div class="lb-row">
-    <span class="lb-rank">${i<3?`<span class="star-sprite ${starClass[i]}"></span>`:'#'+(i+1)}</span>
-    <span class="lb-name">${e.name}</span>
-    <span class="lb-score">${e.score}</span>
-   </div>`).join('');
- }
+async function showLbModal(){
+ lbList.innerHTML='<p class="lb-empty">Loading...</p>';
  lbModal.classList.remove('hidden');
+ try{
+  const res=await fetch('/api/scores');
+  const board=await res.json();
+  if(!Array.isArray(board)||board.length===0){
+   lbList.innerHTML='<p class="lb-empty">No scores yet.<br>Be the first!</p>';
+  }else{
+   const starClass=['star-1','star-2','star-3'];
+   lbList.innerHTML=board.map((e,i)=>`
+    <div class="lb-row">
+     <span class="lb-rank">${i<3?`<span class="star-sprite ${starClass[i]}"></span>`:'#'+(i+1)}</span>
+     <span class="lb-name">${e.name}</span>
+     <span class="lb-score">${e.score}</span>
+    </div>`).join('');
+  }
+ }catch(err){
+  lbList.innerHTML='<p class="lb-empty">Could not load scores.<br>Try again later.</p>';
+ }
 }
 function hideLbModal(){lbModal.classList.add('hidden')}
 
-document.getElementById('btn-save').addEventListener('click',()=>{
+function goToTitle(){state='title';overT=0;initTitlePen();updateTrophyVisibility()}
+
+document.getElementById('btn-save').addEventListener('click',async ()=>{
  const n=playerNameInput.value.trim();
  if(!n)return playerNameInput.focus();
- lbSave(n,score);
+ await lbPost(n,score);
  hideNameModal();
- // re-enter over state so the canvas shows normally
+ goToTitle();
 });
 document.getElementById('btn-skip').addEventListener('click',()=>{
  hideNameModal();
+ goToTitle();
 });
 playerNameInput.addEventListener('keydown',e=>{
  if(e.key==='Enter'){document.getElementById('btn-save').click();e.preventDefault();}
@@ -85,6 +94,25 @@ lbModal.addEventListener('click',e=>{if(e.target===lbModal)hideLbModal()});
 function updateTrophyVisibility(){
  if(state==='title')trophyBtn.classList.remove('hidden');
  else trophyBtn.classList.add('hidden');
+}
+// ---- Title screen penguin animation ----
+// The penguin bobs up/down and periodically fires the jetpack on the title screen.
+let titlePen={y:0,vy:0,boostT:0,flapTimer:1.2};
+function initTitlePen(){titlePen={y:H/2,vy:0,boostT:0,flapTimer:1.2}}
+function updateTitlePen(dt){
+ titlePen.flapTimer-=dt;
+ if(titlePen.flapTimer<=0){titlePen.vy=FLAP;titlePen.boostT=.25;titlePen.flapTimer=1.4+Math.random()*.8}
+ titlePen.boostT=Math.max(0,titlePen.boostT-dt);
+ titlePen.vy+=G*dt;
+ titlePen.y+=titlePen.vy*dt;
+ if(titlePen.y<H*.2){titlePen.y=H*.2;titlePen.vy=Math.abs(titlePen.vy)*.3}
+ if(titlePen.y>H*.8){titlePen.y=H*.8;titlePen.vy=-Math.abs(titlePen.vy)*.3}
+}
+function drawTitlePen(){
+ ctx.save();ctx.translate(portrait?W*.25:230,titlePen.y);
+ const rot=Math.max(-.45,Math.min(1.1,titlePen.vy/700));ctx.rotate(rot);
+ const img=titlePen.boostT>0?IM.boost:IM.idle;
+ ctx.drawImage(img,-PX*S,-PY*S,AS.sw*S,AS.sh*S);ctx.restore();
 }
 function load(){return Promise.all(['idle','boost','cave','title','over'].map(k=>new Promise(r=>{const i=new Image();i.onload=()=>{IM[k]=i;r()};i.src=AS[k]})))}
 // Mobile browsers can suspend audio until a completed tap unlocks it.
@@ -140,13 +168,14 @@ function inPoly(px,py,p){let c=false;for(let i=0,j=p.length-1;i<p.length;j=i++){
 function hit(o){for(const top of [true,false]){const p=poly(o,top);if(inPoly(pen.x,pen.y,p))return true;for(let i=0;i<p.length;i++)if(segDist(pen.x,pen.y,p[i],p[(i+1)%p.length])<R)return true}return false}
 function flap(){
  if(state==='title'){reset();state='play';updateTrophyVisibility()}
- else if(state==='over'){if(overT>.45&&nameModal.classList.contains('hidden')){reset();state='play';updateTrophyVisibility()}else return}
+ else if(state==='over')return; // name modal handles the transition
  else if(state==='dead')return;
  pen.vy=FLAP;boostT=.18;beep(520,.08)}
 function die(){state='dead';deadT=0;pen.vy=-200;beep(120,.35,'sawtooth',.07);if(score>best){best=score;try{sessionStorage.setItem('jp_best',best)}catch(e){}}}
 function update(dt){
  bgx=(bgx+(state==='dead'?0:60)*dt)%(W*2);
- if(state==='title'||state==='over'){overT+=dt;return}
+ if(state==='title'){overT+=dt;updateTitlePen(dt);return}
+ if(state==='over'){overT+=dt;return}
  t+=dt;boostT=Math.max(0,boostT-dt);
  pen.vy+=G*dt;pen.y+=pen.vy*dt;
  if(state==='dead'){deadT+=dt;if(deadT>.8){state='over';overT=0;updateTrophyVisibility();showNameModal(score)}return}
@@ -192,12 +221,12 @@ function draw(){
  if(document.body.dataset.scene!==scene)document.body.dataset.scene=scene;
  ctx.clearRect(0,0,W,H);
  if(state==='title'){cover(IM.title);ctx.fillStyle='rgba(4,8,36,.25)';ctx.fillRect(0,0,W,H);
+  drawTitlePen();
   text('JETPACK',W/2,95,54,'#ffd35a');text('PENGUIN',W/2,160,54,'#fff');
   text(portrait?'TAP TO START':'TAP ANYWHERE TO PLAY',W/2,H-70,22);
   text('BEST '+best,W/2,H-30,14,'#a8dcff');return}
  if(state==='over'){cover(IM.over);ctx.fillStyle='rgba(4,8,36,.5)';ctx.fillRect(0,0,W,H);
-  text('GAME OVER',W/2,110,46,'#ff6b5a');text('SCORE '+score,W/2,200,26);text('BEST '+best,W/2,248,20,'#ffd35a');
-  if(overT>.45)text(portrait?'TAP TO RETRY':'PRESS SPACEBAR TO RETRY',W/2,H-60,18);return}
+  text('GAME OVER',W/2,H/2-40,46,'#ff6b5a');text('SCORE '+score,W/2,H/2+20,26);return}
  drawBg();obs.forEach(drawObs);drawPen();
  text(String(score),W/2,90,80)}
 let last=performance.now();
@@ -213,5 +242,5 @@ if(TOUCH_CONTROL){
 }
 window.addEventListener('keydown',e=>{if(KEYS.includes(e.code)){e.preventDefault();if(!e.repeat)flap()}},true);
 window.focus();cv.focus();
-reset();overT=0;updateTrophyVisibility();
+reset();overT=0;initTitlePen();updateTrophyVisibility();
 load().then(()=>requestAnimationFrame(loop));
