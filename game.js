@@ -239,8 +239,12 @@ function draw(){
  const scene=state==='title'?'title':state==='over'?'over':'cave';
  if(document.body.dataset.scene!==scene)document.body.dataset.scene=scene;
  ctx.clearRect(0,0,W,H);
- if(state==='title'){cover(IM.title);ctx.fillStyle='rgba(4,8,36,.25)';ctx.fillRect(0,0,W,H);
-  drawTitlePen();
+ if(state==='title'){
+  // The large penguin is part of the title artwork. Float the artwork gently
+  // so that penguin moves without drawing the separate small sprite.
+  const bob=Math.sin(performance.now()/520)*7;
+  ctx.save();ctx.translate(0,bob);cover(IM.title);ctx.restore();
+  ctx.fillStyle='rgba(4,8,36,.25)';ctx.fillRect(0,0,W,H);
   if(portrait){text('JETPACK',W/2,100,34,'#ffd35a');text('PENGUIN',W/2,142,34,'#fff')}else{text('JETPACK',W/2,95,54,'#ffd35a');text('PENGUIN',W/2,160,54,'#fff')}
   text(portrait?'TAP TO START':'TAP ANYWHERE TO PLAY',W/2,H-70,22);
   text('BEST '+best,W/2,H-30,14,'#a8dcff');return}
