@@ -239,9 +239,10 @@ function draw(){
  if(document.body.dataset.scene!==scene)document.body.dataset.scene=scene;
  ctx.clearRect(0,0,W,H);
  if(state==='title'){
-  // title_bg.jpg already contains the single penguin for the title screen.
-  const bob=Math.sin(performance.now()/520)*1.2;
-  ctx.save();ctx.translate(0,bob);cover(IM.title);ctx.restore();
+  cover(IM.title);
+  // Place the animated sprite over the character already in the title art so
+  // the penguin stays in front of the title and the jetpack can animate.
+  drawTitlePen();
   ctx.fillStyle='rgba(4,8,36,.25)';ctx.fillRect(0,0,W,H);
   if(portrait){text('JETPACK',W/2,100,34,'#ffd35a');text('PENGUIN',W/2,142,34,'#fff')}else{text('JETPACK',W/2,95,54,'#ffd35a');text('PENGUIN',W/2,160,54,'#fff')}
   text(portrait?'TAP TO START':'TAP ANYWHERE TO PLAY',W/2,H-70,22);
