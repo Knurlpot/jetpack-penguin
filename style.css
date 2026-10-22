@@ -5,7 +5,7 @@ html{scroll-padding-top:env(safe-area-inset-top,0px)}
 html,body{height:100%;margin:0;background:var(--bg);color:var(--fg);overflow:hidden;-webkit-tap-highlight-color:transparent}
 body{display:flex;align-items:center;justify-content:center;user-select:none;-webkit-user-select:none}
 /* Extend the current scene behind the game on tall and wide screens. */
-body::before{content:"";position:fixed;inset:0;background:linear-gradient(rgba(4,8,36,.25),rgba(4,8,36,.25)),url('assets/title_bg.jpg') center/cover no-repeat;pointer-events:none}
+body::before{content:"";position:fixed;inset:0;background:linear-gradient(rgba(4,8,36,.25),rgba(4,8,36,.25)),url('assets/homepage_bg.jpeg') center/cover no-repeat;pointer-events:none}
 body[data-scene="cave"]::before{background-image:linear-gradient(rgba(4,8,36,.3),rgba(4,8,36,.3)),url('assets/cave.jpg')}
 body[data-scene="over"]::before{background-image:linear-gradient(rgba(4,8,36,.5),rgba(4,8,36,.5)),url('assets/gameover_bg.jpg')}
 canvas{position:relative}

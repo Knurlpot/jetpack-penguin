@@ -1,4 +1,4 @@
-const AS={idle:'assets/penguin_idle.png',boost:'assets/penguin_boost.png',cave:'assets/cave.jpg',title:'assets/title_bg.jpg',over:'assets/gameover_bg.jpg',sw:282,sh:190}; // sprite/background files (sw, sh = sprite frame size)
+const AS={idle:'assets/penguin_idle.png',boost:'assets/penguin_boost.png',cave:'assets/cave.jpg',title:'assets/homepage_bg.jpeg',over:'assets/gameover_bg.jpg',sw:282,sh:190}; // sprite/background files (sw, sh = sprite frame size)
 // ---- TWEAK ME ----
 let W=960,H=540,portrait=false; // responsive game coordinates
 const GAP=205;          // vertical gap between stalactite and stalagmite
