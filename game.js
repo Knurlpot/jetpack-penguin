@@ -110,7 +110,7 @@ function updateTrophyVisibility(){
 // ---- Title screen penguin animation ----
 // Animate the existing large title penguin in place.
 let titlePen={y:0,vy:0,boostT:0,flapTimer:1.2};
-function initTitlePen(){titlePen={y:portrait?H*.55:H*.74,vy:0,boostT:.35,flapTimer:1.4}}
+function initTitlePen(){titlePen={y:portrait?H*.52:H*.60,vy:0,boostT:.35,flapTimer:1.4}}
 function updateTitlePen(dt){
  titlePen.flapTimer-=dt;
  if(titlePen.flapTimer<=0){titlePen.boostT=.25;titlePen.flapTimer=1.4+Math.random()*.8}
