@@ -108,20 +108,16 @@ function updateTrophyVisibility(){
  else trophyBtn.classList.add('hidden');
 }
 // ---- Title screen penguin animation ----
-// The large penguin in the title artwork gets its own idle/boost animation.
+// Animate the existing large title penguin in place.
 let titlePen={y:0,vy:0,boostT:0,flapTimer:1.2};
-function initTitlePen(){titlePen={y:H*.49,vy:0,boostT:0,flapTimer:1.2}}
+function initTitlePen(){titlePen={y:H/2,vy:0,boostT:0,flapTimer:1.2}}
 function updateTitlePen(dt){
  titlePen.flapTimer-=dt;
- if(titlePen.flapTimer<=0){titlePen.vy=FLAP;titlePen.boostT=.25;titlePen.flapTimer=1.4+Math.random()*.8}
+ if(titlePen.flapTimer<=0){titlePen.boostT=.25;titlePen.flapTimer=1.4+Math.random()*.8}
  titlePen.boostT=Math.max(0,titlePen.boostT-dt);
- titlePen.vy+=G*dt;
- titlePen.y+=titlePen.vy*dt;
- if(titlePen.y<H*.2){titlePen.y=H*.2;titlePen.vy=Math.abs(titlePen.vy)*.3}
- if(titlePen.y>H*.8){titlePen.y=H*.8;titlePen.vy=-Math.abs(titlePen.vy)*.3}
 }
 function drawTitlePen(){
- const x=portrait?W*.5:W*.52;
+ const x=W/2;
  const scale=portrait?1.05:1.32;
  const shake=titlePen.boostT>0?Math.sin(performance.now()/35)*2.5:Math.sin(performance.now()/420)*1.2;
  ctx.save();ctx.translate(x+shake,titlePen.y+shake*.35);
@@ -243,7 +239,7 @@ function draw(){
  if(document.body.dataset.scene!==scene)document.body.dataset.scene=scene;
  ctx.clearRect(0,0,W,H);
  if(state==='title'){
-  // Keep the title background still; animate the large penguin separately.
+  // Keep the title background still so there is only one large penguin.
   cover(IM.title);
   drawTitlePen();
   ctx.fillStyle='rgba(4,8,36,.25)';ctx.fillRect(0,0,W,H);
