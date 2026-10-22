@@ -110,7 +110,7 @@ function updateTrophyVisibility(){
 // ---- Title screen penguin animation ----
 // Animate the existing large title penguin in place.
 let titlePen={y:0,vy:0,boostT:0,flapTimer:1.2};
-function initTitlePen(){titlePen={y:H/2,vy:0,boostT:0,flapTimer:1.2}}
+function initTitlePen(){titlePen={y:portrait?H*.52:H*.65,vy:0,boostT:.35,flapTimer:1.4}}
 function updateTitlePen(dt){
  titlePen.flapTimer-=dt;
  if(titlePen.flapTimer<=0){titlePen.boostT=.25;titlePen.flapTimer=1.4+Math.random()*.8}
@@ -118,7 +118,7 @@ function updateTitlePen(dt){
 }
 function drawTitlePen(){
  const x=W/2;
- const scale=portrait?1.05:1.32;
+ const scale=portrait?.95:1;
  const shake=titlePen.boostT>0?Math.sin(performance.now()/35)*2.5:Math.sin(performance.now()/420)*1.2;
  ctx.save();ctx.translate(x+shake,titlePen.y+shake*.35);
  const rot=Math.sin(performance.now()/520)*.035+(titlePen.boostT>0?Math.sin(performance.now()/28)*.025:0);ctx.rotate(rot);
