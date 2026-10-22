@@ -76,9 +76,5 @@ canvas{width:min(100vw,calc((100vh - env(safe-area-inset-top,0px) - env(safe-are
 @media(max-width:768px) and (orientation:portrait){
  :root{padding:0}
  canvas{width:100vw;height:100vh;height:100dvh;aspect-ratio:auto}
- #trophy-btn{
-  width:50px;height:50px;
-  top:max(10px, env(safe-area-inset-top, 10px));
-  right:10px;
- }
+ #trophy-btn{width:50px;height:50px;top:max(10px, env(safe-area-inset-top, 10px));right:10px}
 }
