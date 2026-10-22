@@ -3,10 +3,17 @@ const AS={idle:'assets/penguin_idle.png',boost:'assets/penguin_boost.png',cave:'
 let W=960,H=540,portrait=false; // responsive game coordinates
 const GAP=205;          // vertical gap between stalactite and stalagmite
 const OW=130;           // obstacle width
-const BASE_SPEED=210;   // starting obstacle speed (px/s)
-const SPEED_INC=3.2;    // speed increase per point scored
-const MAX_SPEED=360;    // maximum speed cap (px/s)
-function getSpeed(){return Math.min(MAX_SPEED,BASE_SPEED+score*SPEED_INC)}
+// Speed brackets based on score:
+// 0-15:  normal (210 px/s)
+// 16-40: noticeably brisker (scales smoothly from 210 -> 265 px/s)
+// 41-60: fast (scales smoothly from 265 -> 330 px/s)
+// 60+:   max (360 px/s)
+function getSpeed(){
+ if(score<=15) return 210;
+ if(score<=40) return 210 + (score-15)*(55/25); // 210 -> 265
+ if(score<60)  return 265 + (score-40)*(65/20); // 265 -> 330
+ return 360; // 60+ max speed
+}
 const SPACE=340;        // distance between obstacles
 const G=1450;           // gravity
 const THRUST=3200;       // jetpack upward thrust acceleration when holding (px/s^2)
@@ -226,7 +233,18 @@ function update(dt){
   pen.vy+=G*dt;
  }
  pen.y+=pen.vy*dt;
- if(state==='dead'){deadT+=dt;if(deadT>.8){state='over';overT=0;updateTrophyVisibility();showNameModal(score)}return}
+ if(state==='dead'){
+  deadT+=dt;
+  if(deadT>.8){
+   state='over';
+   overT=0;
+   updateTrophyVisibility();
+   if(score>0){
+    showNameModal(score);
+   }
+  }
+  return;
+ }
  if(pen.y<24){pen.y=24;pen.vy=Math.max(pen.vy,0)}
  if(pen.y>H-22){return die()}
  for(const o of obs){o.x-=curSpeed*dt;if(!o.passed&&o.x+OW<pen.x){o.passed=true;score++;beep(880,.1,'triangle',.06)}if(hit(o))return die()}
