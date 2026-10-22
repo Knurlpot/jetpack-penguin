@@ -105,28 +105,12 @@ function updateTitlePen(dt) {
  titleTimer += dt;
 }
 function drawTitlePen() {
- // The title background is 1280x714, mapped to (W, H) via cover()
  const imgW = IM.title.width, imgH = IM.title.height;
  const scale = portrait ? (W / (imgW * 0.5)) : Math.max(W / imgW, H / imgH);
- 
- // In original title_bg (1280x714), the penguin was at x: 276, y: 198 (size 564x380, center approx x: 558, y: 388)
- const origCenterX = 558;
- const origCenterY = 388;
- 
- // Screen coordinates based on cover() mapping
- let screenX, screenY;
- if (portrait) {
-  const sw = imgW * 0.5, sx = (imgW - sw) / 2;
-  const dh = W * imgH / sw;
-  const offsetY = (H - dh) / 2;
-  screenX = (origCenterX - sx) * (W / sw);
-  screenY = offsetY + origCenterY * (dh / imgH);
- } else {
-  const sw = W / scale, sh = H / scale;
-  const sx = (imgW - sw) / 2, sy = (imgH - sh) / 2;
-  screenX = (origCenterX - sx) * scale;
-  screenY = (origCenterY - sy) * scale;
- }
+
+ // Center of the screen
+ const screenX = W / 2;
+ const screenY = H / 2 + (portrait ? 10 : 22);
 
  // Jetpack activation alternates: 1.4s boosting, 1.2s idle
  const cycle = titleTimer % 2.6;
@@ -143,7 +127,7 @@ function drawTitlePen() {
  ctx.translate(screenX + bobX + shakeX, screenY + bobY + shakeY);
  ctx.rotate(tilt);
 
- // Draw the big penguin matching the original 2x pixel size scaled to canvas
+ // Center the penguin body pivot (PX, PY)
  const penScale = scale * 2;
  const img = isBoosting ? IM.boost : IM.idle;
  ctx.drawImage(img, -PX * penScale, -PY * penScale, AS.sw * penScale, AS.sh * penScale);
