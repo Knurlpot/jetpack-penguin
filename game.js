@@ -3,10 +3,15 @@ const AS={idle:'assets/penguin_idle.png',boost:'assets/penguin_boost.png',cave:'
 let W=960,H=540,portrait=false; // responsive game coordinates
 const GAP=205;          // vertical gap between stalactite and stalagmite
 const OW=130;           // obstacle width
-const SPEED=210;        // obstacle speed (px/s)
+const BASE_SPEED=210;   // starting obstacle speed (px/s)
+const SPEED_INC=3.2;    // speed increase per point scored
+const MAX_SPEED=360;    // maximum speed cap (px/s)
+function getSpeed(){return Math.min(MAX_SPEED,BASE_SPEED+score*SPEED_INC)}
 const SPACE=340;        // distance between obstacles
 const G=1450;           // gravity
-const FLAP=-450;        // jetpack kick (more negative = higher)
+const THRUST=3200;       // jetpack upward thrust acceleration when holding (px/s^2)
+const MAX_RISE_SPEED=-420; // maximum upward velocity limit
+const FLAP=-360;        // initial kick on tap (more negative = higher)
 const S=0.5;            // penguin sprite scale
 const PX=205,PY=85;     // sprite pivot (body centre)
 const R=21;             // penguin hitbox radius
@@ -15,7 +20,7 @@ const FONT='"Press Start 2P",monospace';
 const IM={};let best=0;
 // Keep the best score across refreshes for this tab's session.
 try{best=+sessionStorage.getItem('jp_best')||0}catch(e){}
-let state='title',t=0,bgx=0,pen,obs,score,boostT,deadT,overT,ac;
+let state='title',t=0,bgx=0,pen,obs,score,boostT,deadT,overT,ac,holding=false;
 
 // ---- LEADERBOARD  (Vercel KV via /api/scores) ----
 async function lbPost(name, s) {
@@ -185,27 +190,46 @@ return rel.map(([a,b])=>[o.x+a,top?b:H-b])}
 function segDist(px,py,a,b){const dx=b[0]-a[0],dy=b[1]-a[1],l=dx*dx+dy*dy;let u=l?((px-a[0])*dx+(py-a[1])*dy)/l:0;u=Math.max(0,Math.min(1,u));return Math.hypot(px-a[0]-u*dx,py-a[1]-u*dy)}
 function inPoly(px,py,p){let c=false;for(let i=0,j=p.length-1;i<p.length;j=i++){if((p[i][1]>py)!=(p[j][1]>py)&&px<(p[j][0]-p[i][0])*(py-p[i][1])/(p[j][1]-p[i][1])+p[i][0])c=!c}return c}
 function hit(o){for(const top of [true,false]){const p=poly(o,top);if(inPoly(pen.x,pen.y,p))return true;for(let i=0;i<p.length;i++)if(segDist(pen.x,pen.y,p[i],p[(i+1)%p.length])<R)return true}return false}
-function flap(){
- if(state==='title'){reset();state='play';updateTrophyVisibility()}
- else if(state==='over'){
+function startThrust(){
+ holding=true;
+ if(state==='title'){reset();state='play';updateTrophyVisibility();pen.vy=FLAP;boostT=.18;beep(520,.08);return}
+ if(state==='over'){
   if(overT>.3 && nameModal.classList.contains('hidden')){
    goToTitle();
   }
   return;
  }
- else if(state==='dead')return;
- pen.vy=FLAP;boostT=.18;beep(520,.08)}
-function die(){state='dead';deadT=0;pen.vy=-200;beep(120,.35,'sawtooth',.07);if(score>best){best=score;try{sessionStorage.setItem('jp_best',best)}catch(e){}}}
+ if(state==='dead')return;
+ // Initial kick on press
+ if(pen.vy>0)pen.vy=Math.min(pen.vy,FLAP*.7);
+ else pen.vy=Math.max(MAX_RISE_SPEED,pen.vy+FLAP*.4);
+ boostT=.2;
+ beep(520,.08);
+}
+
+function stopThrust(){
+ holding=false;
+}
+
+function die(){holding=false;state='dead';deadT=0;pen.vy=-200;beep(120,.35,'sawtooth',.07);if(score>best){best=score;try{sessionStorage.setItem('jp_best',best)}catch(e){}}}
 function update(dt){
- bgx=(bgx+(state==='dead'?0:60)*dt)%(W*2);
+ const curSpeed=state==='play'?getSpeed():BASE_SPEED;
+ bgx=(bgx+(state==='dead'?0:curSpeed*0.3)*dt)%(W*2);
  if(state==='title'){overT+=dt;updateTitlePen(dt);return}
  if(state==='over'){overT+=dt;return}
- t+=dt;boostT=Math.max(0,boostT-dt);
- pen.vy+=G*dt;pen.y+=pen.vy*dt;
+ t+=dt;
+ if(holding&&state==='play'){
+  boostT=.1;
+  pen.vy=Math.max(MAX_RISE_SPEED,pen.vy+(G-THRUST)*dt);
+ }else{
+  boostT=Math.max(0,boostT-dt);
+  pen.vy+=G*dt;
+ }
+ pen.y+=pen.vy*dt;
  if(state==='dead'){deadT+=dt;if(deadT>.8){state='over';overT=0;updateTrophyVisibility();showNameModal(score)}return}
  if(pen.y<24){pen.y=24;pen.vy=Math.max(pen.vy,0)}
  if(pen.y>H-22){return die()}
- for(const o of obs){o.x-=SPEED*dt;if(!o.passed&&o.x+OW<pen.x){o.passed=true;score++;beep(880,.1,'triangle',.06)}if(hit(o))return die()}
+ for(const o of obs){o.x-=curSpeed*dt;if(!o.passed&&o.x+OW<pen.x){o.passed=true;score++;beep(880,.1,'triangle',.06)}if(hit(o))return die()}
  if(obs[0].x<-OW-20){obs.shift();addObs(obs[obs.length-1].x+SPACE)}}
 function sceneImage(img,x=0){
  const scale=Math.max(W/img.width,H/img.height),sw=W/scale,sh=H/scale;
@@ -246,11 +270,17 @@ function draw(){
  ctx.clearRect(0,0,W,H);
  if(state==='title'){cover(IM.title);ctx.fillStyle='rgba(4,8,36,.25)';ctx.fillRect(0,0,W,H);
   drawTitlePen();
-  text('JETPACK',W/2,95,54,'#ffd35a');text('PENGUIN',W/2,160,54,'#fff');
+  if(portrait){
+   text('JETPACK',W/2,100,34,'#ffd35a');
+   text('PENGUIN',W/2,142,34,'#fff');
+  }else{
+   text('JETPACK',W/2,95,54,'#ffd35a');
+   text('PENGUIN',W/2,160,54,'#fff');
+  }
   text(portrait?'TAP TO START':'TAP ANYWHERE TO PLAY',W/2,H-70,22);
   text('BEST '+best,W/2,H-30,14,'#a8dcff');return}
  if(state==='over'){cover(IM.over);ctx.fillStyle='rgba(4,8,36,.5)';ctx.fillRect(0,0,W,H);
-  text('GAME OVER',W/2,110,46,'#ff6b5a');text('SCORE '+score,W/2,200,26);text('BEST '+best,W/2,248,20,'#ffd35a');
+  text('TRY AGAIN',W/2,110,46,'#ff6b5a');text('SCORE '+score,W/2,200,26);text('BEST '+best,W/2,248,20,'#ffd35a');
   if(overT>.3&&nameModal.classList.contains('hidden'))text(portrait?'TAP TO CONTINUE':'PRESS SPACEBAR TO CONTINUE',W/2,H-60,18);return}
  drawBg();obs.forEach(drawObs);drawPen();
  text(String(score),W/2,90,80)}
@@ -260,12 +290,35 @@ const KEYS=['Space'];        // keys that fire the jetpack
 const TOUCH_CONTROL=true;    // click/tap also flaps; set false for keyboard only
 cv.tabIndex=0;
 if(TOUCH_CONTROL){
- cv.addEventListener('pointerdown',e=>{e.preventDefault();unlockAudio();cv.focus({preventScroll:true});flap()});
- // Touch activation is granted on release in browsers that block pointerdown audio.
- cv.addEventListener('pointerup',unlockAudio);
- cv.addEventListener('touchend',unlockAudio,{passive:true});
+ cv.addEventListener('pointerdown',e=>{
+  e.preventDefault();
+  unlockAudio();
+  cv.focus({preventScroll:true});
+  startThrust();
+ });
+ window.addEventListener('pointerup',e=>{
+  unlockAudio();
+  stopThrust();
+ });
+ window.addEventListener('pointercancel',stopThrust);
+ window.addEventListener('touchend',e=>{
+  unlockAudio();
+  stopThrust();
+ },{passive:true});
 }
-window.addEventListener('keydown',e=>{if(KEYS.includes(e.code)){e.preventDefault();if(!e.repeat)flap()}},true);
+window.addEventListener('keydown',e=>{
+ if(KEYS.includes(e.code)){
+  e.preventDefault();
+  if(!e.repeat)startThrust();
+ }
+},true);
+window.addEventListener('keyup',e=>{
+ if(KEYS.includes(e.code)){
+  e.preventDefault();
+  stopThrust();
+ }
+},true);
+window.addEventListener('blur',stopThrust);
 window.focus();cv.focus();
 reset();overT=0;initTitlePen();updateTrophyVisibility();
 load().then(()=>requestAnimationFrame(loop));
