@@ -1,4 +1,4 @@
-const AS={idle:'assets/penguin_idle.png',boost:'assets/penguin_boost.png',cave:'assets/cave.jpg',title:'assets/title_bg.jpg',over:'assets/gameover_bg.jpg',sw:282,sh:190}; // sprite/background files (sw, sh = sprite frame size)
+const AS={idle:'assets/penguin_idle.png',boost:'assets/penguin_boost.png',cave:'assets/cave.jpg',title:'assets/title_bg.jpg',titleBoost:'assets/title_boost_bg.jpg',over:'assets/gameover_bg.jpg',sw:282,sh:190}; // sprite/background files (sw, sh = sprite frame size)
 // ---- TWEAK ME ----
 let W=960,H=540,portrait=false; // responsive game coordinates
 const GAP=205;          // vertical gap between stalactite and stalagmite
@@ -108,7 +108,7 @@ function updateTrophyVisibility(){
  else trophyBtn.classList.add('hidden');
 }
 // ---- Title screen penguin animation ----
-// The big centerpiece penguin floats/shakes in place and fires its jetpack on & off
+// Alternates jetpack on & off with subtle engine shake
 let titleTimer = 0;
 function initTitlePen() {
  titleTimer = 0;
@@ -116,36 +116,10 @@ function initTitlePen() {
 function updateTitlePen(dt) {
  titleTimer += dt;
 }
-function drawTitlePen() {
- const imgW = IM.title.width, imgH = IM.title.height;
- const scale = portrait ? (W / (imgW * 0.5)) : Math.max(W / imgW, H / imgH);
-
- // Center of the screen
- const screenX = W / 2;
- const screenY = H / 2 + (portrait ? 10 : 22);
-
- // Jetpack activation alternates: 1.4s boosting, 1.2s idle
- const cycle = titleTimer % 2.6;
- const isBoosting = cycle < 1.4;
-
- // Floating bob + subtle vibration/shake when jetpack is active
- const bobY = Math.sin(titleTimer * 2.8) * 8;
- const bobX = Math.cos(titleTimer * 1.4) * 3;
- const shakeX = isBoosting ? (Math.random() - 0.5) * 3.5 : (Math.random() - 0.5) * 0.8;
- const shakeY = isBoosting ? (Math.random() - 0.5) * 3.5 : (Math.random() - 0.5) * 0.8;
- const tilt = Math.sin(titleTimer * 2.2) * 0.04 + (isBoosting ? 0.03 : -0.02);
-
- ctx.save();
- ctx.translate(screenX + bobX + shakeX, screenY + bobY + shakeY);
- ctx.rotate(tilt);
-
- // Center the penguin body pivot (PX, PY)
- const penScale = scale * 2;
- const img = isBoosting ? IM.boost : IM.idle;
- ctx.drawImage(img, -PX * penScale, -PY * penScale, AS.sw * penScale, AS.sh * penScale);
- ctx.restore();
+function isTitleBoosting() {
+ return (titleTimer % 2.6) < 1.4;
 }
-function load(){return Promise.all(['idle','boost','cave','title','over'].map(k=>new Promise(r=>{const i=new Image();i.onload=()=>{IM[k]=i;r()};i.src=AS[k]})))}
+function load(){return Promise.all(['idle','boost','cave','title','titleBoost','over'].map(k=>new Promise(r=>{const i=new Image();i.onload=()=>{IM[k]=i;r()};i.src=AS[k]})))}
 // Mobile browsers can suspend audio until a completed tap unlocks it.
 function unlockAudio(){
  try{
@@ -286,8 +260,15 @@ function draw(){
  const scene=state==='title'?'title':state==='over'?'over':'cave';
  if(document.body.dataset.scene!==scene)document.body.dataset.scene=scene;
  ctx.clearRect(0,0,W,H);
- if(state==='title'){cover(IM.title);ctx.fillStyle='rgba(4,8,36,.25)';ctx.fillRect(0,0,W,H);
-  drawTitlePen();
+ if(state==='title'){
+  const boost = isTitleBoosting();
+  const shakeX = boost ? (Math.random() - 0.5) * 3 : 0;
+  const shakeY = boost ? (Math.random() - 0.5) * 3 : 0;
+  ctx.save();
+  if(shakeX || shakeY) ctx.translate(shakeX, shakeY);
+  cover(boost ? IM.titleBoost : IM.title);
+  ctx.restore();
+  ctx.fillStyle='rgba(4,8,36,.25)';ctx.fillRect(0,0,W,H);
   if(portrait){
    text('JETPACK',W/2,100,34,'#ffd35a');
    text('PENGUIN',W/2,142,34,'#fff');
