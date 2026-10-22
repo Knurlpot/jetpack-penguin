@@ -123,6 +123,8 @@ function drawTitlePen(){
  ctx.save();ctx.translate(x+shake,titlePen.y+shake*.35);
  const rot=Math.sin(performance.now()/520)*.035+(titlePen.boostT>0?Math.sin(performance.now()/28)*.025:0);ctx.rotate(rot);
  const img=titlePen.boostT>0?IM.boost:IM.idle;
+ ctx.shadowColor='rgba(7,11,42,.95)';ctx.shadowBlur=8;ctx.shadowOffsetX=0;ctx.shadowOffsetY=4;
+ ctx.filter='brightness(1.08) contrast(1.12) saturate(1.08)';
  ctx.drawImage(img,-PX*scale,-PY*scale,AS.sw*scale,AS.sh*scale);ctx.restore();
 }
 function load(){return Promise.all(['idle','boost','cave','title','over'].map(k=>new Promise(r=>{const i=new Image();i.onload=()=>{IM[k]=i;r()};i.src=AS[k]})))}
