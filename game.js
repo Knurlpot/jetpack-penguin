@@ -1,4 +1,4 @@
-const AS={idle:'assets/penguin_idle.png',boost:'assets/penguin_boost.png',cave:'assets/cave.jpg',title:'assets/title_bg.jpg',titleBoost:'assets/title_boost_bg.jpg',over:'assets/gameover_bg.jpg',sw:282,sh:190}; // sprite/background files (sw, sh = sprite frame size)
+const AS={idle:'assets/penguin_idle.png',boost:'assets/penguin_boost.png',cave:'assets/cave.jpg',title:'assets/title_bg.jpg',over:'assets/gameover_bg.jpg',sw:282,sh:190}; // sprite/background files (sw, sh = sprite frame size)
 // ---- TWEAK ME ----
 let W=960,H=540,portrait=false; // responsive game coordinates
 const GAP=205;          // vertical gap between stalactite and stalagmite
@@ -108,18 +108,25 @@ function updateTrophyVisibility(){
  else trophyBtn.classList.add('hidden');
 }
 // ---- Title screen penguin animation ----
-// Alternates jetpack on & off with subtle engine shake
-let titleTimer = 0;
-function initTitlePen() {
- titleTimer = 0;
+// The penguin bobs up/down and periodically fires the jetpack on the title screen.
+let titlePen={y:0,vy:0,boostT:0,flapTimer:1.2};
+function initTitlePen(){titlePen={y:H/2,vy:0,boostT:0,flapTimer:1.2}}
+function updateTitlePen(dt){
+ titlePen.flapTimer-=dt;
+ if(titlePen.flapTimer<=0){titlePen.vy=FLAP;titlePen.boostT=.25;titlePen.flapTimer=1.4+Math.random()*.8}
+ titlePen.boostT=Math.max(0,titlePen.boostT-dt);
+ titlePen.vy+=G*dt;
+ titlePen.y+=titlePen.vy*dt;
+ if(titlePen.y<H*.2){titlePen.y=H*.2;titlePen.vy=Math.abs(titlePen.vy)*.3}
+ if(titlePen.y>H*.8){titlePen.y=H*.8;titlePen.vy=-Math.abs(titlePen.vy)*.3}
 }
-function updateTitlePen(dt) {
- titleTimer += dt;
+function drawTitlePen(){
+ ctx.save();ctx.translate(portrait?W*.25:230,titlePen.y);
+ const rot=Math.max(-.45,Math.min(1.1,titlePen.vy/700));ctx.rotate(rot);
+ const img=titlePen.boostT>0?IM.boost:IM.idle;
+ ctx.drawImage(img,-PX*S,-PY*S,AS.sw*S,AS.sh*S);ctx.restore();
 }
-function isTitleBoosting() {
- return (titleTimer % 2.6) < 1.4;
-}
-function load(){return Promise.all(['idle','boost','cave','title','titleBoost','over'].map(k=>new Promise(r=>{const i=new Image();i.onload=()=>{IM[k]=i;r()};i.src=AS[k]})))}
+function load(){return Promise.all(['idle','boost','cave','title','over'].map(k=>new Promise(r=>{const i=new Image();i.onload=()=>{IM[k]=i;r()};i.src=AS[k]})))}
 // Mobile browsers can suspend audio until a completed tap unlocks it.
 function unlockAudio(){
  try{
@@ -260,15 +267,8 @@ function draw(){
  const scene=state==='title'?'title':state==='over'?'over':'cave';
  if(document.body.dataset.scene!==scene)document.body.dataset.scene=scene;
  ctx.clearRect(0,0,W,H);
- if(state==='title'){
-  const boost = isTitleBoosting();
-  const shakeX = boost ? (Math.random() - 0.5) * 3 : 0;
-  const shakeY = boost ? (Math.random() - 0.5) * 3 : 0;
-  ctx.save();
-  if(shakeX || shakeY) ctx.translate(shakeX, shakeY);
-  cover(boost ? IM.titleBoost : IM.title);
-  ctx.restore();
-  ctx.fillStyle='rgba(4,8,36,.25)';ctx.fillRect(0,0,W,H);
+ if(state==='title'){cover(IM.title);ctx.fillStyle='rgba(4,8,36,.25)';ctx.fillRect(0,0,W,H);
+  drawTitlePen();
   if(portrait){
    text('JETPACK',W/2,100,34,'#ffd35a');
    text('PENGUIN',W/2,142,34,'#fff');
