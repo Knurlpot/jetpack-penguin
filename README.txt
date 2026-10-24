@@ -28,6 +28,9 @@ How to play
 - Press Space repeatedly or click/tap to fire the jetpack and stay airborne.
   Holding Space does not repeatedly fire it.
 - Fly through the gaps and avoid the obstacles and the ground.
+- On the title screen, use the on-screen arrows or Left/Right keys to choose
+  a penguin skin and its matching world. The selected skin is saved in this
+  browser.
 - After Game Over, press Space or click/tap to retry.
 - Your best score is saved in this browser when local storage is available.
 

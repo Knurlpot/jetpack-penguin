@@ -6,7 +6,6 @@ html,body{height:100%;margin:0;background:var(--bg);color:var(--fg);overflow:hid
 body{display:flex;align-items:center;justify-content:center;user-select:none;-webkit-user-select:none}
 /* Extend the current scene behind the game on tall and wide screens. */
 body::before{content:"";position:fixed;inset:0;background:linear-gradient(rgba(4,8,36,.25),rgba(4,8,36,.25)),url('assets/homepage_bg.jpeg') center/cover no-repeat;pointer-events:none}
-body[data-scene="cave"]::before{background-image:linear-gradient(rgba(4,8,36,.3),rgba(4,8,36,.3)),url('assets/cave.jpg')}
 body[data-scene="over"]::before{background-image:linear-gradient(rgba(4,8,36,.5),rgba(4,8,36,.5)),url('assets/gameover_bg.jpg')}
 canvas{position:relative}
 
@@ -17,6 +16,9 @@ canvas{position:relative}
  color:#e8f4ff;
 }
 #name-modal.hidden,#lb-modal.hidden{display:none}
+#death-lb-timer.hidden,#death-lb-score.hidden{display:none}
+#death-lb-timer{margin:18px 0 0;text-align:center;color:#a8dcff}
+#death-lb-score{margin-bottom:12px;text-align:center;color:#ffd35a}
 .modal-box{
  background:rgba(6,10,36,.95);border:2px solid #a8dcff;border-radius:12px;
  padding:32px 36px;text-align:center;max-width:360px;width:90%;
@@ -53,6 +55,8 @@ canvas{position:relative}
 
 /* Leaderboard list */
 #lb-modal .modal-box{max-width:420px}
+#lb-modal.death-leaderboard .modal-box{width:min(82vw,680px);max-width:none;min-height:62vh;display:flex;flex-direction:column;justify-content:center}
+#name-modal.death-name-entry .modal-box{width:min(82vw,680px);max-width:none;min-height:62vh;display:flex;flex-direction:column;justify-content:center}
 .lb-row{display:flex;align-items:center;gap:10px;margin-bottom:10px;font-size:9px}
 .lb-rank{color:#ffd35a;width:36px;text-align:right;flex-shrink:0;display:flex;align-items:center;justify-content:flex-end}
 .lb-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left}
