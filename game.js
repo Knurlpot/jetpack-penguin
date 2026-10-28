@@ -118,8 +118,8 @@ function finishDeathLeaderboard(){
 }
 
 function showDeathLeaderboard(){
- state='leaderboard';overT=0;lbModal.classList.add('death-leaderboard');if(deathLbScore){deathLbScore.textContent='SCORE: '+score;deathLbScore.classList.remove('hidden')}if(deathLbTimer){deathLbTimer.textContent='(7)';deathLbTimer.classList.remove('hidden')}showLbModal();
- deathLeaderboardTimer=setTimeout(finishDeathLeaderboard,7000);
+ state='leaderboard';overT=0;lbModal.classList.add('death-leaderboard');if(deathLbScore){deathLbScore.textContent='SCORE: '+score;deathLbScore.classList.remove('hidden')}if(deathLbTimer){deathLbTimer.textContent='(5)';deathLbTimer.classList.remove('hidden')}showLbModal();
+ deathLeaderboardTimer=setTimeout(finishDeathLeaderboard,5000);
 }
 
 lbModal.addEventListener('click',e=>{
@@ -269,7 +269,7 @@ function update(dt){
  bgx=(bgx+(state==='dead'?0:curSpeed*.3)*dt)%(W*2);
  if(state==='title'){overT+=dt;updateTitlePen(dt);return}
  if(state==='over'){overT+=dt;return}
- if(state==='nameentry'||state==='leaderboard'){overT+=dt;if(state==='leaderboard'&&deathLbTimer)deathLbTimer.textContent='('+Math.max(1,Math.ceil(7-overT))+')';return}
+ if(state==='nameentry'||state==='leaderboard'){overT+=dt;if(state==='leaderboard'&&deathLbTimer)deathLbTimer.textContent='('+Math.max(1,Math.ceil(5-overT))+')';return}
  t+=dt;
  if(holding&&state==='play'){boostT=.1;pen.vy=Math.max(MAX_RISE_SPEED,pen.vy+(G-THRUST)*dt)}
  else{boostT=Math.max(0,boostT-dt);pen.vy+=G*dt}
