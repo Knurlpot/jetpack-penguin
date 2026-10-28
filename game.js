@@ -131,13 +131,13 @@ function goToTitle(){state='title';overT=0;initTitlePen();updateTrophyVisibility
 document.getElementById('btn-save').addEventListener('click',async ()=>{
  const n=playerNameInput.value.trim();
  if(!n)return playerNameInput.focus();
- // Do not block the retry screen if the leaderboard API is unavailable.
  hideNameModal();
- showGameOver();
+ showDeathLeaderboard();
  lbPost(n,score);
 });
 document.getElementById('btn-skip').addEventListener('click',()=>{
- showGameOver();
+ hideNameModal();
+ showDeathLeaderboard();
 });
 playerNameInput.addEventListener('keydown',e=>{
  if(e.key==='Enter'){document.getElementById('btn-save').click();e.preventDefault();}
@@ -145,6 +145,12 @@ playerNameInput.addEventListener('keydown',e=>{
  e.stopPropagation(); // don't let Space/Enter trigger flap
 });
 trophyBtn.addEventListener('click',e=>{e.stopPropagation();showLbModal()});
+document.getElementById('lb-close').addEventListener('click',e=>{
+ e.preventDefault();
+ e.stopPropagation();
+ if(state==='leaderboard')finishDeathLeaderboard();
+ else hideLbModal();
+});
 // Close lb modal on backdrop click
 lbModal.addEventListener('click',e=>{if(e.target===lbModal)hideLbModal()});
 
@@ -268,7 +274,7 @@ function update(dt){
  if(holding&&state==='play'){boostT=.1;pen.vy=Math.max(MAX_RISE_SPEED,pen.vy+(G-THRUST)*dt)}
  else{boostT=Math.max(0,boostT-dt);pen.vy+=G*dt}
  pen.y+=pen.vy*dt;
- if(state==='dead'){deadT+=dt;if(deadT>.8){overT=0;if(score>0){state='nameentry';showNameModal(score)}else showGameOver()}return}
+ if(state==='dead'){deadT+=dt;if(deadT>.8){overT=0;if(score>0){state='nameentry';showNameModal(score)}else showDeathLeaderboard()}return}
  if(pen.y<24){pen.y=24;pen.vy=Math.max(pen.vy,0)}
  if(pen.y>H-22){return die()}
  for(const o of obs){o.x-=curSpeed*dt;if(!o.passed&&o.x+OW<pen.x){o.passed=true;score++;beep(880,.1,'triangle',.06)}if(hit(o))return die()}
