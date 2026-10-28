@@ -76,6 +76,17 @@ function showNameModal(s){
  setTimeout(()=>playerNameInput.focus(),60);
 }
 function hideNameModal(){nameModal.classList.add('hidden');nameModal.classList.remove('death-name-entry')}
+function showGameOver(){
+ hideNameModal();
+ hideLbModal();
+ lbModal.classList.remove('death-leaderboard');
+ if(deathLbTimer)deathLbTimer.classList.add('hidden');
+ if(deathLbScore)deathLbScore.classList.add('hidden');
+ if(deathLeaderboardTimer){clearTimeout(deathLeaderboardTimer);deathLeaderboardTimer=null}
+ state='over';
+ overT=0;
+ updateTrophyVisibility();
+}
 
 async function showLbModal(){
  lbList.innerHTML='<p class="lb-empty">Loading...</p>';
@@ -103,11 +114,11 @@ function hideLbModal(){lbModal.classList.add('hidden')}
 function finishDeathLeaderboard(){
  if(state!=='leaderboard')return;
  if(deathLeaderboardTimer){clearTimeout(deathLeaderboardTimer);deathLeaderboardTimer=null}
- hideLbModal();lbModal.classList.remove('death-leaderboard');deathLbTimer.classList.add('hidden');deathLbScore.classList.add('hidden');state='over';overT=0;updateTrophyVisibility();
+ hideLbModal();lbModal.classList.remove('death-leaderboard');if(deathLbTimer)deathLbTimer.classList.add('hidden');if(deathLbScore)deathLbScore.classList.add('hidden');state='over';overT=0;updateTrophyVisibility();
 }
 
 function showDeathLeaderboard(){
- state='leaderboard';overT=0;lbModal.classList.add('death-leaderboard');deathLbScore.textContent='SCORE: '+score;deathLbScore.classList.remove('hidden');deathLbTimer.textContent='(7)';deathLbTimer.classList.remove('hidden');showLbModal();
+ state='leaderboard';overT=0;lbModal.classList.add('death-leaderboard');if(deathLbScore){deathLbScore.textContent='SCORE: '+score;deathLbScore.classList.remove('hidden')}if(deathLbTimer){deathLbTimer.textContent='(7)';deathLbTimer.classList.remove('hidden')}showLbModal();
  deathLeaderboardTimer=setTimeout(finishDeathLeaderboard,7000);
 }
 
@@ -120,13 +131,13 @@ function goToTitle(){state='title';overT=0;initTitlePen();updateTrophyVisibility
 document.getElementById('btn-save').addEventListener('click',async ()=>{
  const n=playerNameInput.value.trim();
  if(!n)return playerNameInput.focus();
- await lbPost(n,score);
+ // Do not block the retry screen if the leaderboard API is unavailable.
  hideNameModal();
- showDeathLeaderboard();
+ showGameOver();
+ lbPost(n,score);
 });
 document.getElementById('btn-skip').addEventListener('click',()=>{
- hideNameModal();
- showDeathLeaderboard();
+ showGameOver();
 });
 playerNameInput.addEventListener('keydown',e=>{
  if(e.key==='Enter'){document.getElementById('btn-save').click();e.preventDefault();}
@@ -252,12 +263,12 @@ function update(dt){
  bgx=(bgx+(state==='dead'?0:curSpeed*.3)*dt)%(W*2);
  if(state==='title'){overT+=dt;updateTitlePen(dt);return}
  if(state==='over'){overT+=dt;return}
- if(state==='nameentry'||state==='leaderboard'){overT+=dt;if(state==='leaderboard')deathLbTimer.textContent='('+Math.max(1,Math.ceil(7-overT))+')';return}
+ if(state==='nameentry'||state==='leaderboard'){overT+=dt;if(state==='leaderboard'&&deathLbTimer)deathLbTimer.textContent='('+Math.max(1,Math.ceil(7-overT))+')';return}
  t+=dt;
  if(holding&&state==='play'){boostT=.1;pen.vy=Math.max(MAX_RISE_SPEED,pen.vy+(G-THRUST)*dt)}
  else{boostT=Math.max(0,boostT-dt);pen.vy+=G*dt}
  pen.y+=pen.vy*dt;
- if(state==='dead'){deadT+=dt;if(deadT>.8){overT=0;if(score>0){state='nameentry';showNameModal(score)}else showDeathLeaderboard()}return}
+ if(state==='dead'){deadT+=dt;if(deadT>.8){overT=0;if(score>0){state='nameentry';showNameModal(score)}else showGameOver()}return}
  if(pen.y<24){pen.y=24;pen.vy=Math.max(pen.vy,0)}
  if(pen.y>H-22){return die()}
  for(const o of obs){o.x-=curSpeed*dt;if(!o.passed&&o.x+OW<pen.x){o.passed=true;score++;beep(880,.1,'triangle',.06)}if(hit(o))return die()}
@@ -326,9 +337,7 @@ function drawGameOverPen(){
   ctx.closePath();ctx.fill();ctx.restore();
  }
 }
-function selectSkinAtPointer(event){
- return false;
-}
+function selectSkinAtPointer(event){return false}
 function text(s,x,y,size,col='#fff',al='center'){size=Math.min(size,(W-40)/Math.max(1,s.length));ctx.font=size+'px '+FONT;ctx.textAlign=al;ctx.textBaseline='middle';ctx.lineJoin='round';ctx.lineWidth=size/4;ctx.strokeStyle='#070b2a';ctx.strokeText(s,x,y);ctx.fillStyle=col;ctx.fillText(s,x,y)}
 function draw(){
  const skin=getSkin();

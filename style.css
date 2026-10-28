@@ -55,8 +55,8 @@ canvas{position:relative}
 
 /* Leaderboard list */
 #lb-modal .modal-box{max-width:420px}
-#lb-modal.death-leaderboard .modal-box{width:min(82vw,680px);max-width:none;min-height:62vh;display:flex;flex-direction:column;justify-content:center}
-#name-modal.death-name-entry .modal-box{width:min(82vw,680px);max-width:none;min-height:62vh;display:flex;flex-direction:column;justify-content:center}
+#lb-modal.death-leaderboard .modal-box{width:min(68vw,560px);max-width:none;min-height:42vh;display:flex;flex-direction:column;justify-content:center}
+#name-modal.death-name-entry .modal-box{width:min(68vw,560px);max-width:none;min-height:42vh;display:flex;flex-direction:column;justify-content:center}
 .lb-row{display:flex;align-items:center;gap:10px;margin-bottom:10px;font-size:9px}
 .lb-rank{color:#ffd35a;width:36px;text-align:right;flex-shrink:0;display:flex;align-items:center;justify-content:flex-end}
 .lb-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left}
