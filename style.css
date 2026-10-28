@@ -71,7 +71,9 @@ canvas{position:relative}
 .star-1{background-image:url('assets/first.png')}
 .star-2{background-image:url('assets/second.png')}
 .star-3{background-image:url('assets/third.png')}
-.btn-close{background:#a8dcff;color:#060a24;border-color:#a8dcff;margin-top:18px;font-family:"Press Start 2P",monospace;font-size:10px;padding:10px 20px;border-radius:6px;border:2px solid;cursor:pointer}
+.lb-actions{display:flex;align-items:center;justify-content:center;gap:14px;margin-top:18px}
+.btn-close{background:#a8dcff;color:#060a24;border-color:#a8dcff;margin-top:0;font-family:"Press Start 2P",monospace;font-size:8px;padding:7px 12px;border-radius:6px;border:2px solid;cursor:pointer}
+.lb-actions #death-lb-timer{margin:0;color:#a8dcff;font-size:9px}
 .btn-close:hover{background:#c8eaff}
 canvas{width:min(100vw,calc((100vh - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px))*16/9));aspect-ratio:16/9;touch-action:none;display:block;cursor:pointer}
 @supports(height:100dvh){canvas{width:min(100vw,calc((100dvh - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px))*16/9))}html,body{height:100dvh}}

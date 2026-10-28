@@ -88,8 +88,9 @@ function showGameOver(){
  updateTrophyVisibility();
 }
 
-async function showLbModal(){
- lbList.innerHTML='<p class="lb-empty">Loading...</p>';
+async function showLbModal(instant=false){
+ if(!instant)lbList.innerHTML='<p class="lb-empty">Loading...</p>';
+ else if(!lbList.innerHTML.trim())lbList.innerHTML='<p class="lb-empty">No scores yet.</p>';
  lbModal.classList.remove('hidden');
  try{
   const res=await fetch('/api/scores');
@@ -118,7 +119,7 @@ function finishDeathLeaderboard(){
 }
 
 function showDeathLeaderboard(){
- state='leaderboard';overT=0;lbModal.classList.add('death-leaderboard');if(deathLbScore){deathLbScore.textContent='SCORE: '+score;deathLbScore.classList.remove('hidden')}if(deathLbTimer){deathLbTimer.textContent='(5)';deathLbTimer.classList.remove('hidden')}showLbModal();
+ state='leaderboard';overT=0;lbModal.classList.add('death-leaderboard');if(deathLbScore){deathLbScore.textContent='SCORE: '+score;deathLbScore.classList.remove('hidden')}if(deathLbTimer){deathLbTimer.textContent='(5)';deathLbTimer.classList.remove('hidden')}showLbModal(true);
  deathLeaderboardTimer=setTimeout(finishDeathLeaderboard,5000);
 }
 
