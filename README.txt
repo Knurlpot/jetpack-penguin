@@ -2,6 +2,8 @@ JETPACK PENGUIN
 
 ^^to change name
 
+JP
+
 How to run
 ----------
 This is a browser game written in plain JavaScript. No npm install or build
